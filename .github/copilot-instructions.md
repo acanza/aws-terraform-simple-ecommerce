@@ -40,6 +40,7 @@ Apply these rules to ALL Copilot interactions in this repository, regardless of 
 - File organization: `terraform.tf` (version constraints), `main.tf` (resources), `variables.tf` (inputs), `outputs.tf` (exports), `locals.tf` (computed values)
 - Tagging and metadata patterns established in existing resources
 - Backend and remote state configurations
+- Write all documentation in English for consistency
 
 **When uncertain**:
 - Match the nearest existing module or resource for pattern consistency
