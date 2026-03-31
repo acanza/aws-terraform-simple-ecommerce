@@ -11,11 +11,12 @@ variable "vpc_cidr" {
 }
 
 variable "trusted_ssh_cidr" {
-  description = "CIDR block allowed for SSH access to EC2 (e.g., your public IP/32 or corporate VPN subnet)"
+  description = "CIDR block allowed for SSH access to EC2 (optional, SSH disabled if not provided)"
   type        = string
+  default     = null
   validation {
-    condition     = can(cidrhost(var.trusted_ssh_cidr, 0))
-    error_message = "Trusted SSH CIDR must be a valid IPv4 CIDR block."
+    condition     = var.trusted_ssh_cidr == null || can(cidrhost(var.trusted_ssh_cidr, 0))
+    error_message = "Trusted SSH CIDR must be a valid IPv4 CIDR block or null."
   }
 }
 

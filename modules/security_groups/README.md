@@ -7,7 +7,7 @@ This module creates security groups for the ecommerce architecture with minimal,
 ### EC2 Security Group (Web Tier - Public Subnets)
 
 **Inbound Rules:**
-- **SSH (port 22)**: Restricted to `trusted_ssh_cidr` (variable - e.g., your office IP/32 or corporate VPN)
+- **SSH (port 22)**: BLOCKED by default (disabled for security) - Optional: enable via `trusted_ssh_cidr` variable
 - **HTTP (port 80)**: Optional (controlled by `enable_http` variable)
 - **HTTPS (port 443)**: Optional (controlled by `enable_https` variable)
 
@@ -31,8 +31,8 @@ This module creates security groups for the ecommerce architecture with minimal,
 1. **Least Privilege**: Only required ports and sources are allowed
 2. **Explicit Rules**: Using separate `aws_vpc_security_group_ingress_rule` and `aws_vpc_security_group_egress_rule` resources (not inline blocks) for clarity and maintainability
 3. **Security Group Reference**: RDS rules reference EC2 SG directly, enabling fine-grained access control
-4. **No HTTP/HTTPS by Default**: Web traffic disabled unless explicitly enabled (safer defaults for dev)
-5. **Parameterized SSH Access**: Trusted IP must be provided by operator (no hardcoded defaults)
+4. **No SSH by Default**: SSH access disabled for maximum security (must be explicitly enabled if needed)
+5. **No HTTP/HTTPS by Default**: Web traffic disabled unless explicitly enabled (safer defaults for dev)
 
 ---
 
@@ -47,8 +47,8 @@ module "security_groups" {
   project_name      = "ecommerce"
   vpc_id            = module.vpc.vpc_id
   
-  # REQUIRED: Replace with your public IP or VPN subnet
-  trusted_ssh_cidr  = "203.0.113.0/32"  # Your office IP from ifconfig/myip.com
+  # Optional: Enable SSH from specific CIDR (disabled by default)
+  # trusted_ssh_cidr  = "203.0.113.42/32"  # Uncomment to enable SSH from your IP
   
   # Optional: Enable web traffic (disabled by default)
   enable_http       = false
@@ -75,7 +75,7 @@ module "security_groups" {
 | `environment` | string | - | Environment (dev/stage/prod) |
 | `project_name` | string | `ecommerce` | Project name for naming |
 | `vpc_id` | string | - | VPC ID (required) |
-| `trusted_ssh_cidr` | string | - | CIDR for SSH access (required, e.g., `203.0.113.0/32`) |
+| `trusted_ssh_cidr` | string | `null` | CIDR for SSH access (optional, SSH disabled if null, e.g., `203.0.113.0/32`) |
 | `enable_http` | bool | `false` | Enable HTTP to EC2 |
 | `enable_https` | bool | `false` | Enable HTTPS to EC2 |
 | `db_port` | number | `3306` | Database port (MySQL default) |
@@ -100,7 +100,7 @@ module "security_groups" {
 ### ✅ What's Secure by Default
 
 - **RDS is NOT publicly accessible**: Only accessible from EC2 security group
-- **SSH restricted**: Must provide trusted CIDR (no 0.0.0.0/0 defaults)
+- **SSH BLOCKED**: Disabled by default for maximum security (must explicitly enable if needed via `trusted_ssh_cidr`)
 - **HTTP/HTTPS disabled**: Must explicitly enable for web services
 - **S3/CloudFront**: No security groups needed (handled separately)
 - **IAM**: Not part of this module (see iam module)
@@ -132,7 +132,7 @@ module "security_groups" {
 ### 🔴 Known Overly-Permissive Access
 
 **None identified if properly configured:**
-- EC2 SSH: Restricted to `trusted_ssh_cidr` (user-defined)
+- EC2 SSH: BLOCKED by default (must explicitly enable via `trusted_ssh_cidr`)
 - EC2 HTTP/HTTPS: Disabled by default (opt-in)
 - RDS: Only from EC2 SG (no public internet)
 - Egress: Necessary for architecture (can't tighten further without additional infrastructure)
@@ -141,8 +141,6 @@ module "security_groups" {
 - Add ALB security group and restrict RDS to ALB->EC2 path
 - Replace egress all-traffic with specific endpoint routes for S3, DynamoDB
 - Add VPC Flow Logs to monitor actual traffic patterns
-
----
 
 ## Example: Integration with VPC + Dev Environment
 

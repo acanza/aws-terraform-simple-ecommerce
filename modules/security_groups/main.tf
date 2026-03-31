@@ -15,23 +15,6 @@ resource "aws_security_group" "ec2" {
   )
 }
 
-# Inbound SSH from trusted CIDR only
-resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
-  description       = "SSH from trusted network"
-  from_port         = 22
-  to_port           = 22
-  ip_protocol       = "tcp"
-  cidr_ipv4         = var.trusted_ssh_cidr
-  security_group_id = aws_security_group.ec2.id
-
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "${var.project_name}-${var.environment}-ec2-ssh"
-    }
-  )
-}
-
 # Conditional: Inbound HTTP from internet (if enabled)
 resource "aws_vpc_security_group_ingress_rule" "ec2_http" {
   count             = var.enable_http ? 1 : 0

@@ -53,12 +53,12 @@
    - **Configuration**: `enable_http = false` and `enable_https = false` by default
    - **Flexibility**: Can enable via variables in terraform.tfvars
 
-### 3. **SSH Access: Restricted to Trusted CIDR**
-   - **Assumption**: SSH is restricted to a specific CIDR (no 0.0.0.0/0 access)
-   - **Why**: SSH port (22) is a common attack target; must be restricted
-   - **Implementation**: Variable `trusted_ssh_cidr` is REQUIRED (no default)
-   - **Example**: `trusted_ssh_cidr = "203.0.113.0/32"` (your office IP)
-   - **For VPN**: `trusted_ssh_cidr = "203.0.113.0/24"` (corporate VPN subnet)
+### 3. **SSH Access: BLOCKED by Default**
+   - **Assumption**: SSH is completely disabled for maximum security
+   - **Why**: SSH port (22) is a common attack target; disabled by default
+   - **Implementation**: No SSH ingress rule; optional via `trusted_ssh_cidr` variable (default: null)
+   - **To enable SSH (optional)**: Uncomment `trusted_ssh_cidr = "203.0.113.0/32"` (your office IP)
+   - **For VPN (optional)**: Use `trusted_ssh_cidr = "203.0.113.0/24"` (corporate VPN subnet)
 
 ### 4. **RDS Access: Exclusive to EC2 Security Group**
    - **Assumption**: Database is only accessible from web servers
@@ -106,11 +106,11 @@
 
 ### 🔴 CRITICAL RISKS
 
-**1. Missing `trusted_ssh_cidr` variable → SSH exposed to 0.0.0.0/0**
-   - **Risk**: If operator doesn't provide `trusted_ssh_cidr`, Terraform will fail (GOOD)
-   - **Severity**: CRITICAL if someone manually adds SSH rule with 0.0.0.0/0
-   - **Mitigation**: Variable is required (no default); validation checks CIDR syntax
-   - **Status**: ✅ Protected
+**1. SSH exposure (formerly CRITICAL, now MITIGATED)**
+   - **Risk**: SSH was previously restricted to trusted CIDR; now completely blocked by default
+   - **Severity**: MITIGATED (no SSH rule exists; must explicitly enable if needed)
+   - **Mitigation**: SSH ingress rule is NOT created unless `trusted_ssh_cidr` is explicitly provided
+   - **Status**: ✅ Secure by default (SSH disabled)
 
 **2. HTTP/HTTPS enabled (0.0.0.0/0) without authentication**
    - **Risk**: If `enable_http = true` or `enable_https = true`, web server is public
@@ -172,11 +172,11 @@
    - **Mitigation**: Single NAT acceptable for dev; prod uses multi-NAT HA
    - **Status**: ✅ Acceptable for dev
 
-**2. No SSH key rotation policy**
-   - **Risk**: Long-lived SSH keys (EC2 Key Pairs)
-   - **Severity**: LOW (depends on key management)
-   - **Mitigation**: Implement key rotation policy, SSM Session Manager in future
-   - **Status**: ⏳ Future improvement
+**2. No SSH key rotation policy (only if SSH is enabled)**
+   - **Risk**: Long-lived SSH keys (EC2 Key Pairs) if SSH is explicitly enabled
+   - **Severity**: LOW (only applicable if SSH is enabled; mitigated by default SSH block)
+   - **Mitigation**: If enabling SSH, implement key rotation policy; consider SSM Session Manager
+   - **Status**: ⏳ Future improvement (post-SSH enablement)
 
 ---
 
@@ -185,7 +185,7 @@
 ### Current Configuration (if properly used)
 
 ✅ **NOT overly permissive** if configured correctly:
-- ✅ SSH: Limited to `trusted_ssh_cidr` (not 0.0.0.0/0)
+- ✅ SSH: BLOCKED by default (optional to enable via `trusted_ssh_cidr`)
 - ✅ HTTP/HTTPS: Disabled by default (opt-in only)
 - ✅ RDS: Only from EC2 SG (not public internet)
 - ✅ Outbound: Necessary for architecture
@@ -193,10 +193,11 @@
 ### Potential Issues (if misconfigured)
 
 ❌ **Would be overly permissive if:**
-1. SSH rule added with `cidr_ipv4 = "0.0.0.0/0"` (manual override)
+1. SSH rule added with `cidr_ipv4 = "0.0.0.0/0"` (manual override - SSH blocked by default)
 2. `enable_http = true` on untested/vulnerable app
 3. `enable_https = true` without HTTPS/TLS enforced
 4. RDS port opened to 0.0.0.0/0 (manual error)
+5. `trusted_ssh_cidr` enabled with overly broad CIDR (e.g., "0.0.0.0/0")
 
 ### Mitigation
 
@@ -211,9 +212,9 @@
 
 ### Before `terraform plan`:
 
-- [ ] Determine your trusted SSH IP
+- [ ] (OPTIONAL) Enable SSH access? (disabled by default)
   ```bash
-  # Find your public IP
+  # Only if SSH needed: Find your public IP
   curl https://ifconfig.me
   # Example: 203.0.113.42 → provide as 203.0.113.42/32
   ```
@@ -233,7 +234,8 @@
 ```hcl
 region            = "eu-west-3"
 vpc_cidr          = "10.0.0.0/16"
-trusted_ssh_cidr  = "203.0.113.0/32"  # ← MUST PROVIDE
+# SSH disabled by default; uncomment below to enable:
+# trusted_ssh_cidr  = "203.0.113.0/32"  # ← ONLY IF SSH NEEDED
 enable_http       = false
 enable_https      = false
 db_port           = 3306
@@ -246,7 +248,7 @@ Plan: 14 to add, 0 to change, 0 to destroy
 
 + aws_security_group.ec2
 + aws_security_group.rds
-+ aws_vpc_security_group_ingress_rule.ec2_ssh
++ aws_vpc_security_group_ingress_rule.ec2_ssh (if trusted_ssh_cidr provided)
 + aws_vpc_security_group_ingress_rule.ec2_http (if enabled)
 + aws_vpc_security_group_ingress_rule.ec2_https (if enabled)
 + aws_vpc_security_group_egress_rule.ec2_all_outbound
@@ -260,7 +262,7 @@ Plan: 14 to add, 0 to change, 0 to destroy
 
 | Aspect | Status | Rationale |
 |--------|--------|-----------|
-| **SSH Restricted** | ✅ SECURE | Requires trusted CIDR, no 0.0.0.0/0 default |
+| **SSH Access** | ✅ SECURE | Blocked by default, optional to enable |
 | **Web Traffic** | ✅ SECURE | Disabled by default, must enable explicitly |
 | **RDS Isolated** | ✅ SECURE | Only accessible from EC2 SG |
 | **Outbound Access** | ⚠️ ACCEPTABLE | Necessary for dev/stage; tighten for prod |

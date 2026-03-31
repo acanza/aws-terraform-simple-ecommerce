@@ -9,16 +9,21 @@ region   = "eu-west-3"
 vpc_cidr = "10.0.0.0/16"
 
 ################################################################################
-# REQUIRED: SSH Access Configuration
+# OPTIONAL: SSH Access Configuration
 # 
-# Replace "YOUR_IP" with your actual public IP address
-# Find your IP: curl https://ifconfig.me
+# SSH access to EC2 instances is DISABLED by default for security
+# To enable SSH, uncomment and set the CIDR block of your trusted network:
+# 
+# trusted_ssh_cidr = "203.0.113.42/32"  # Your office public IP (find: curl https://ifconfig.me)
+# 
 # Examples:
 #   - Single IP: "203.0.113.42/32"
 #   - Corporate VPN: "203.0.113.0/24"
 #   - Office subnet: "10.0.1.0/25"
+# 
+# Leave as null (default) to BLOCK SSH entirely
 ################################################################################
-trusted_ssh_cidr = "YOUR_IP/32"
+# trusted_ssh_cidr = null
 
 ################################################################################
 # Optional: Web Traffic Configuration
