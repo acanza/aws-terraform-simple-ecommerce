@@ -1,0 +1,42 @@
+################################################################################
+# Dev Environment Configuration Example
+# 
+# Copy this file to: envs/dev/terraform.tfvars
+# (Note: terraform.tfvars should NOT be committed to git)
+################################################################################
+
+region   = "eu-west-3"
+vpc_cidr = "10.0.0.0/16"
+
+################################################################################
+# REQUIRED: SSH Access Configuration
+# 
+# Replace "YOUR_IP" with your actual public IP address
+# Find your IP: curl https://ifconfig.me
+# Examples:
+#   - Single IP: "203.0.113.42/32"
+#   - Corporate VPN: "203.0.113.0/24"
+#   - Office subnet: "10.0.1.0/25"
+################################################################################
+trusted_ssh_cidr = "YOUR_IP/32"
+
+################################################################################
+# Optional: Web Traffic Configuration
+# 
+# Set to 'true' to allow HTTP/HTTPS from the internet
+# Default: false (safer, no public web access unless explicitly enabled)
+################################################################################
+enable_http  = false
+enable_https = false
+
+################################################################################
+# Optional: Database Configuration
+# 
+# Default: 3306 (MySQL)
+# Other options:
+#   - PostgreSQL: 5432
+#   - SQL Server: 1433
+#   - MariaDB: 3306
+#   - Oracle: 1521
+################################################################################
+db_port = 3306
