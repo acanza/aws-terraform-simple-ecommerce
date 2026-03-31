@@ -93,6 +93,16 @@ resource "aws_db_instance" "main" {
 
 ---
 
+## Documentation file policy
+
+- Never create `.md` files in the repository root.
+- Store all non-essential documentation under `/docs`.
+- Create new documentation files only when explicitly requested or when the information has clear long-term value.
+- Do not generate one documentation file per module by default.
+- Prefer updating existing files in `/docs` rather than creating new ones.
+- Temporary analysis, implementation notes, or risk summaries should be returned in chat, not saved as files.
+- Avoid generic, repetitive, or low-value documentation.
+
 ## Validation & Execution Pattern
 
 When making changes, prefer the established validation flow already present in this repository:
