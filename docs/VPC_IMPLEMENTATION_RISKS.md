@@ -11,8 +11,8 @@
    - Assumption: Acceptable for dev/stage environments
    - Note: In production, consider /23 or /22 for growth
 
-3. **AZ Distribution**: Resources across 2 AZs (us-east-1a, us-east-1b)
-   - Assumption: us-east-1 is the target region
+3. **AZ Distribution**: Resources across 2 AZs (eu-west-3a, eu-west-3b)
+   - Assumption: eu-west-3 is the target region
    - Alternative: Parameterizable via `region` variable
 
 4. **Single NAT Gateway**
@@ -121,18 +121,18 @@ Plan: 12 to add, 0 to change, 0 to destroy
 - [ ] No hardcoded secrets ✓ (verified)
 - [ ] IAM role has permissions to create VPC, subnets, IGW, NAT, etc.
 - [ ] Not using shared VPC 10.0.0.0/16 in this AWS account
-- [ ] Region (us-east-1) is desired
+- [ ] Region (eu-west-3) is desired
 
 ### Step 5: Post-Apply Validation (when applied)
 ```bash
 # Verify VPC was created
-aws ec2 describe-vpcs --region us-east-1 --query 'Vpcs[?Tags[?Key==`Name`].Value==`ecommerce-dev-vpc`]'
+aws ec2 describe-vpcs --region eu-west-3 --query 'Vpcs[?Tags[?Key==`Name`].Value==`ecommerce-dev-vpc`]'
 
 # Verify subnets
-aws ec2 describe-subnets --filters Name=vpc-id,Values=<VPC_ID> --region us-east-1
+aws ec2 describe-subnets --filters Name=vpc-id,Values=<VPC_ID> --region eu-west-3
 
 # Verify NAT Gateway status
-aws ec2 describe-nat-gateways --region us-east-1
+aws ec2 describe-nat-gateways --region eu-west-3
 ```
 
 ---

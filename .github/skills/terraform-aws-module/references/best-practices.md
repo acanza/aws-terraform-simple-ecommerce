@@ -112,7 +112,7 @@ version = "~> 5.3.0"    # Allows 5.3.0-5.3.9999
 variable "aws_region" {
   description = "AWS region for resource deployment"
   type        = string
-  default     = "us-east-1"
+  default     = "eu-west-3"
 }
 
 variable "environment" {
@@ -468,17 +468,17 @@ Brief description of what this module provides.
 module "service" {
   source = "./modules/service"
   
-  aws_region  = "us-east-1"
+  aws_region  = "eu-west-3"
   environment = "prod"
   instance_count = 3
 }
-\`\`\`
+```
 
 ## Variables
 
 | Name | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
-| aws_region | string | "us-east-1" | No | AWS region |
+| aws_region | string | "eu-west-3" | No | AWS region |
 | environment | string | - | Yes | Environment (dev/stage/prod) |
 
 ## Outputs

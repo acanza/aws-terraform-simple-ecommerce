@@ -55,7 +55,7 @@ cat > "$MODULE_PATH/variables.tf" << 'VARIABLES_EOF'
 variable "aws_region" {
   description = "AWS region where resources will be deployed"
   type        = string
-  default     = "us-east-1"
+  default     = "eu-west-3"
 }
 
 variable "default_tags" {
@@ -193,7 +193,7 @@ cat > "$MODULE_PATH/README.md" << 'README_EOF'
 module "service_name" {
   source = "./modules/service_name"
   
-  aws_region = "us-east-1"
+  aws_region = "eu-west-3"
   module_name = "my-service"
   
   # Add service-specific variables

@@ -114,7 +114,7 @@ resource "aws_dynamodb_global_table" "users" {
 # Use VPC endpoints for private access
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id       = aws_vpc.main.id
-  service_name = "com.amazonaws.us-east-1.dynamodb"
+  service_name = "com.amazonaws.eu-west-3.dynamodb"
   
   policy = jsonencode({
     Version = "2012-10-17"

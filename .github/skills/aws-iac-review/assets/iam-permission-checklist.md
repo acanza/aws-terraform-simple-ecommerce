@@ -160,19 +160,19 @@ For each `Resource` ARN in the policy:
 "arn:aws:s3:::my-bucket/specific/path/*"
 
 # EC2 Instances
-"arn:aws:ec2:us-east-1:123456789012:instance/i-*"
+"arn:aws:ec2:eu-west-3:123456789012:instance/i-*"
 
 # Lambda Functions
-"arn:aws:lambda:us-east-1:123456789012:function:MyFunction"
+"arn:aws:lambda:eu-west-3:123456789012:function:MyFunction"
 
 # RDS Database
-"arn:aws:rds:us-east-1:123456789012:db:mydb"
+"arn:aws:rds:eu-west-3:123456789012:db:mydb"
 
 # DynamoDB Table
-"arn:aws:dynamodb:us-east-1:123456789012:table/my-table"
+"arn:aws:dynamodb:eu-west-3:123456789012:table/my-table"
 
 # SNS Topic
-"arn:aws:sns:us-east-1:123456789012:my-topic"
+"arn:aws:sns:eu-west-3:123456789012:my-topic"
 ```
 
 ### Dynamic ARNs (Never Hardcode Account ID) ✅
@@ -265,7 +265,7 @@ Statement = [
       "logs:CreateLogStream",
       "logs:PutLogEvents"
     ]
-    Resource = "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/*"
+    Resource = "arn:aws:logs:eu-west-3:${var.account_id}:log-group:/aws/lambda/*"
   },
   {
     Sid    = "VPCAccess"
@@ -275,7 +275,7 @@ Statement = [
       "ec2:DescribeNetworkInterfaces",
       "ec2:DeleteNetworkInterface"
     ]
-    Resource = "arn:aws:ec2:${var.region}:${var.account_id}:network-interface/*"
+    Resource = "arn:aws:ec2:eu-west-3:${var.account_id}:network-interface/*"
     Condition = {
       StringEquals = {
         "ec2:Vpc" = aws_vpc.main.arn

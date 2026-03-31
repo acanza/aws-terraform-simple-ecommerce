@@ -165,10 +165,10 @@ resource "aws_vpc_ipv4_cidr_block_association" "secondary" {
 resource "aws_subnet" "app" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"  # Hard-coded!
+  availability_zone = "eu-west-3a"  # Hard-coded!
 }
 
-# Later: us-east-1a becomes unavailable or deprecated
+# Later: eu-west-3a becomes unavailable or deprecated
 # Result: Terraform must replace the subnet (cascades to instances, ENIs, etc.)
 ```
 
@@ -216,7 +216,7 @@ resource "aws_s3_bucket" "data" {
 ✅ **CORRECT**: Static, unique bucket name
 ```hcl
 resource "aws_s3_bucket" "data" {
-  bucket = "company-data-prod-us-east-1"  # Static across deployments
+  bucket = "company-data-prod-eu-west-3"  # Static across deployments
   
   # Prevent accidental deletion
   lifecycle {
@@ -241,7 +241,7 @@ resource "aws_s3_bucket_versioning" "data" {
 ```hcl
 # ❌ WRONG: Hard-coded AZ
 resource "aws_ebs_volume" "data" {
-  availability_zone = "us-east-1a"  # Locked to this AZ
+  availability_zone = "eu-west-3a"  # Locked to this AZ
   size              = 1000
 }
 

@@ -16,10 +16,10 @@ This module creates a production-ready VPC with public and private subnets acros
 
 | Component | CIDR | AZ | Purpose |
 |-----------|------|----|---------| 
-| Public Subnet 1 | 10.0.1.0/24 | us-east-1a | Web-facing resources |
-| Public Subnet 2 | 10.0.2.0/24 | us-east-1b | Web-facing resources (HA) |
-| Private Subnet 1 | 10.0.11.0/24 | us-east-1a | Application tier |
-| Private Subnet 2 | 10.0.12.0/24 | us-east-1b | Application tier (HA) |
+| Public Subnet 1 | 10.0.1.0/24 | eu-west-3a | Web-facing resources |
+| Public Subnet 2 | 10.0.2.0/24 | eu-west-3b | Web-facing resources (HA) |
+| Private Subnet 1 | 10.0.11.0/24 | eu-west-3a | Application tier |
+| Private Subnet 2 | 10.0.12.0/24 | eu-west-3b | Application tier (HA) |
 
 ## Usage
 
@@ -27,7 +27,7 @@ This module creates a production-ready VPC with public and private subnets acros
 module "vpc" {
   source = "../../modules/vpc"
 
-  region       = "us-east-1"
+  region       = "eu-west-3"
   environment  = "dev"
   vpc_cidr     = "10.0.0.0/16"
   project_name = "ecommerce"
@@ -42,7 +42,7 @@ module "vpc" {
 
 | Name | Description | Type | Default |
 |------|-------------|------|---------|
-| `region` | AWS region for deployment | `string` | `us-east-1` |
+| `region` | AWS region for deployment | `string` | `eu-west-3` |
 | `environment` | Environment name (dev/stage/prod) | `string` | - |
 | `vpc_cidr` | CIDR block for the VPC | `string` | `10.0.0.0/16` |
 | `project_name` | Project name for naming convention | `string` | `ecommerce` |

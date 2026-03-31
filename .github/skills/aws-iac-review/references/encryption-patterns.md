@@ -173,7 +173,7 @@ Prevent data from exiting your VPC:
 ```hcl
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.us-east-1.dynamodb"
+  service_name        = "com.amazonaws.eu-west-3.dynamodb"
   vpc_endpoint_type   = "Gateway"
   route_table_ids     = [aws_route_table.private.id]
   
@@ -320,7 +320,7 @@ resource "aws_s3_bucket_policy" "enforce_https" {
 ❌ **WRONG**: Unencrypted volumes
 ```hcl
 resource "aws_ebs_volume" "data" {
-  availability_zone = "us-east-1a"
+  availability_zone = "eu-west-3a"
   size              = 100
   # encrypted not specified, defaults to false
 }
@@ -346,7 +346,7 @@ resource "aws_ebs_default_kms_key" "main" {
 }
 
 resource "aws_ebs_volume" "data" {
-  availability_zone = "us-east-1a"
+  availability_zone = "eu-west-3a"
   size              = 100
   
   encrypted  = true
