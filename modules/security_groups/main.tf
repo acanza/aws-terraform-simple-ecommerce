@@ -87,12 +87,12 @@ resource "aws_security_group" "rds" {
 
 # Inbound: Database access from EC2 security group only
 resource "aws_vpc_security_group_ingress_rule" "rds_from_ec2" {
-  description              = "Database access from EC2 instances"
-  from_port                = var.db_port
-  to_port                  = var.db_port
-  ip_protocol              = "tcp"
+  description                  = "Database access from EC2 instances"
+  from_port                    = var.db_port
+  to_port                      = var.db_port
+  ip_protocol                  = "tcp"
   referenced_security_group_id = aws_security_group.ec2.id
-  security_group_id        = aws_security_group.rds.id
+  security_group_id            = aws_security_group.rds.id
 
   tags = merge(
     local.common_tags,

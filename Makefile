@@ -24,5 +24,8 @@ destroy:
 fmt:
 	terraform fmt -recursive
 
+lint:
+	tflint
+
 validate:
 	terraform validate
