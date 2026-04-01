@@ -278,3 +278,6 @@ fi
 
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+
+echo ""
+read -p "✓ Presiona Enter para cerrar..." _

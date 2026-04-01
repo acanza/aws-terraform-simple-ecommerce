@@ -196,11 +196,11 @@ echo -e "  ${YELLOW}MEDIUM:   $MEDIUM${NC}"
 
 if [[ "$CRITICAL" -gt 0 ]]; then
   echo -e "\n${RED}❌ Critical issues found - fix before planning${NC}"
-  exit 1
 elif [[ "$HIGH" -gt 0 ]] || [[ "$MEDIUM" -gt 0 ]]; then
   echo -e "\n${YELLOW}⚠️  Found issues - review above${NC}"
-  exit 0
 else
   echo -e "\n${GREEN}✓ No hardcoded values detected${NC}"
-  exit 0
 fi
+
+echo ""
+read -p "✓ Presiona Enter para cerrar..." _
