@@ -1,31 +1,56 @@
-.PHONY: help init plan apply destroy fmt validate
+.PHONY: help init plan apply destroy fmt validate lint
+
+# Default environment (can be overridden: make plan ENV=prod)
+ENV ?= dev
 
 help:
 	@echo "Terraform Makefile targets:"
-	@echo "  make init       - Initialize Terraform"
-	@echo "  make plan       - Plan infrastructure changes"
-	@echo "  make apply      - Apply infrastructure changes"
-	@echo "  make destroy    - Destroy infrastructure"
-	@echo "  make fmt        - Format Terraform files"
+	@echo ""
+	@echo "Build Commands:"
+	@echo "  make init       - Initialize Terraform in envs/dev"
+	@echo "  make fmt        - Format all Terraform files"
 	@echo "  make validate   - Validate Terraform configuration"
+	@echo "  make lint       - Run tflint on modules"
+	@echo ""
+	@echo "Execution Commands (default: dev environment):"
+	@echo "  make plan       - Plan infrastructure changes (envs/dev)"
+	@echo "  make apply      - Apply infrastructure changes (envs/dev)"
+	@echo "  make destroy    - Destroy infrastructure (envs/dev)"
+	@echo ""
+	@echo "Advanced:"
+	@echo "  make plan ENV=prod       - Plan production changes"
+	@echo "  make apply ENV=stage     - Apply to staging environment"
 
+# Initialize Terraform in the development environment
 init:
-	terraform init
+	cd envs/dev && terraform init
 
+# Plan infrastructure changes
 plan:
-	terraform plan
+	@echo "Planning infrastructure changes in envs/$(ENV)..."
+	cd envs/$(ENV) && terraform plan -out=tfplan
 
+# Apply infrastructure changes
 apply:
-	terraform apply
+	@echo "Applying infrastructure changes in envs/$(ENV)..."
+	cd envs/$(ENV) && terraform apply tfplan
 
+# Destroy infrastructure
 destroy:
-	terraform destroy
+	@echo "WARNING: This will destroy all infrastructure in envs/$(ENV)"
+	cd envs/$(ENV) && terraform destroy
 
+# Format Terraform files recursively
 fmt:
+	@echo "Formatting all Terraform files..."
 	terraform fmt -recursive
 
-lint:
-	tflint
-
+# Validate Terraform configuration
 validate:
-	terraform validate
+	@echo "Validating Terraform configuration..."
+	cd envs/dev && terraform validate
+
+# Lint Terraform code
+lint:
+	@echo "Linting Terraform modules..."
+	tflint
