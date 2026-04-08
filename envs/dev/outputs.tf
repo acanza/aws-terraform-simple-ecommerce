@@ -65,3 +65,44 @@ output "ec2_instance_state" {
   description = "State of the EC2 instance (running, stopped, etc.)"
   value       = module.ec2.instance_state
 }
+
+# ============================================================
+# RDS PostgreSQL Database
+# ============================================================
+
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint (address:port) - only accessible from within VPC"
+  value       = try(module.rds[0].db_instance_endpoint, null)
+  sensitive   = true
+}
+
+output "rds_address" {
+  description = "RDS PostgreSQL hostname for connection strings"
+  value       = try(module.rds[0].db_instance_address, null)
+}
+
+output "rds_port" {
+  description = "RDS PostgreSQL port"
+  value       = try(module.rds[0].db_instance_port, null)
+}
+
+output "rds_database_name" {
+  description = "Initial database name"
+  value       = try(module.rds[0].database_name, null)
+}
+
+output "rds_database_username" {
+  description = "RDS master username"
+  value       = try(module.rds[0].database_username, null)
+  sensitive   = true
+}
+
+output "rds_instance_id" {
+  description = "RDS instance identifier"
+  value       = try(module.rds[0].db_instance_id, null)
+}
+
+output "rds_instance_arn" {
+  description = "ARN of the RDS instance"
+  value       = try(module.rds[0].db_instance_arn, null)
+}

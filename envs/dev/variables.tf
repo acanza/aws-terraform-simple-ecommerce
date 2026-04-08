@@ -37,3 +37,20 @@ variable "db_port" {
   type        = number
   default     = 3306
 }
+
+variable "rds_master_password" {
+  description = "Master password for RDS PostgreSQL database (stored in Secrets Manager recommended for production)"
+  type        = string
+  sensitive   = true
+  default     = "devPassword123!"  # Only for development - NEVER use for production
+  validation {
+    condition     = length(var.rds_master_password) >= 8 && length(var.rds_master_password) <= 128
+    error_message = "RDS master password must be between 8 and 128 characters."
+  }
+}
+
+variable "enable_rds" {
+  description = "Enable RDS PostgreSQL database deployment"
+  type        = bool
+  default     = true
+}
