@@ -25,7 +25,7 @@ output "primary_network_interface_id" {
 
 output "security_group_id" {
   description = "The security group ID associated with the instance"
-  value       = aws_instance.main.vpc_security_group_ids[0]
+  value       = one(aws_instance.main.vpc_security_group_ids)
 }
 
 output "instance_state" {
