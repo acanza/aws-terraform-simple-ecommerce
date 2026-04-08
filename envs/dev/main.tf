@@ -27,3 +27,29 @@ module "security_groups" {
     CostCenter = "engineering"
   }
 }
+
+# EC2 Instance - Cost-optimized baseline
+module "ec2" {
+  source = "../../modules/ec2"
+
+  region        = var.region
+  environment   = "dev"
+  project_name  = "ecommerce"
+  instance_name = "web-server-01"
+  instance_type = "t4g.micro" # Free tier eligible, ARM-based
+
+  # Deploy to public subnet 1 for internet accessibility
+  subnet_id         = module.vpc.public_subnet_1_id
+  security_group_id = module.security_groups.ec2_security_group_id
+
+  # Cost optimization defaults
+  root_volume_size        = 8 # Minimal
+  root_volume_type        = "gp3"
+  enable_ebs_optimization = false
+  monitoring_enabled      = false
+  associate_public_ip     = true
+
+  tags = {
+    CostCenter = "engineering"
+  }
+}
