@@ -39,6 +39,9 @@ module "iam" {
   enable_ssh_user   = true
   ssh_user_name     = "ec2-ssh-dev"
 
+  # S3 bucket ARN for EC2 instance role (will be set after bucket creation)
+  s3_bucket_arn = ""
+
   tags = {
     CostCenter = "engineering"
   }
@@ -116,4 +119,33 @@ module "rds" {
     module.security_groups,
     module.ec2
   ]
+}
+
+# S3 Bucket for storing application images
+module "s3_images" {
+  source = "../../modules/s3"
+
+  bucket_name = "ecommerce-dev-images-${data.aws_caller_identity.current.account_id}"
+  environment = "dev"
+
+  enable_versioning             = true
+  enable_server_side_encryption = true
+  lifecycle_expiration_days     = 0 # Keep images indefinitely in dev
+
+  # Allow EC2 instance role to read and write images
+  read_access_role_arns  = [module.iam.ec2_instance_role_arn]
+  write_access_role_arns = [module.iam.ec2_instance_role_arn]
+
+  tags = {
+    CostCenter = "engineering"
+  }
+
+  depends_on = [
+    module.iam,
+    module.ec2
+  ]
+}
+
+# Data source to get current AWS account ID
+data "aws_caller_identity" "current" {
 }

@@ -97,6 +97,7 @@ resource "aws_db_instance" "main" {
 
 - Never create `.md` files in the repository root.
 - Store all non-essential documentation under `/docs`.
+- Write documentation in English for consistency.
 - Create new documentation files only when explicitly requested or when the information has clear long-term value.
 - Do not generate one documentation file per module by default.
 - Prefer updating existing files in `/docs` rather than creating new ones.

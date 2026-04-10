@@ -47,6 +47,12 @@ variable "ssh_user_name" {
   default     = "ec2-ssh-user"
 }
 
+variable "s3_bucket_arn" {
+  description = "S3 bucket ARN for images (optional, for EC2 instance role access)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)

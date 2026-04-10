@@ -145,3 +145,28 @@ output "read_only_group_arn" {
   description = "IAM group ARN for read-only access"
   value       = module.iam.read_only_group_arn
 }
+
+# ============================================================
+# S3 Images Bucket
+# ============================================================
+
+output "s3_images_bucket_name" {
+  description = "Name of the S3 bucket for storing application images"
+  value       = module.s3_images.bucket_name
+}
+
+output "s3_images_bucket_arn" {
+  description = "ARN of the S3 bucket for images"
+  value       = module.s3_images.bucket_arn
+}
+
+output "s3_images_bucket_domain_name" {
+  description = "Regional domain name of the S3 bucket (for HTTP access)"
+  value       = module.s3_images.bucket_domain_name
+}
+
+output "s3_images_folder_path" {
+  description = "Recommended S3 path for storing images: s3://bucket-name/images/"
+  value       = module.s3_images.images_folder_path
+}
+

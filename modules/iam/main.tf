@@ -81,6 +81,43 @@ data "aws_iam_policy_document" "ec2_cloudwatch_logs" {
   }
 }
 
+# Policy for S3 image bucket access (optional, if bucket ARN provided)
+resource "aws_iam_role_policy" "ec2_s3_images" {
+  count  = var.s3_bucket_arn != "" ? 1 : 0
+  name   = "${local.namespace}-ec2-s3-images"
+  role   = aws_iam_role.ec2_instance_role.id
+  policy = data.aws_iam_policy_document.ec2_s3_images[0].json
+}
+
+data "aws_iam_policy_document" "ec2_s3_images" {
+  count = var.s3_bucket_arn != "" ? 1 : 0
+
+  statement {
+    sid    = "AllowS3ImageBucketRead"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket"
+    ]
+    resources = [
+      var.s3_bucket_arn,
+      "${var.s3_bucket_arn}/*"
+    ]
+  }
+
+  statement {
+    sid    = "AllowS3ImageBucketWrite"
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    resources = [
+      "${var.s3_bucket_arn}/*"
+    ]
+  }
+}
+
 # EC2 Instance Profile for role attachment
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "${local.namespace}-ec2-instance-profile"
