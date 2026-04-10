@@ -6,13 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.0"
-    }
   }
 }
 
-provider "aws" {
-  region = var.aws_region
-}
+# Note: Provider configuration is inherited from the calling workspace.
+# This module does not define its own provider block to allow use with
+# count, for_each, and to enable flexible provider composition.
+

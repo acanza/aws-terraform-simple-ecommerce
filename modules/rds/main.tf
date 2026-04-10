@@ -52,6 +52,7 @@ resource "aws_security_group" "rds" {
 
 # Allow inbound PostgreSQL traffic from specified security groups
 resource "aws_security_group_rule" "rds_inbound" {
+  count             = length(var.allowed_security_group_ids) > 0 ? 1 : 0
   type              = "ingress"
   from_port         = 5432
   to_port           = 5432
@@ -100,22 +101,21 @@ resource "aws_security_group_rule" "rds_outbound" {
 # ============================================================
 
 resource "aws_db_instance" "main" {
-  identifier            = "${var.project_name}-${var.environment}-postgres"
-  db_name              = var.database_name
-  engine               = "postgres"
-  engine_version       = var.engine_version
-  instance_class       = var.instance_class
-  allocated_storage    = var.allocated_storage
-  storage_type         = var.storage_type
-  storage_encrypted    = var.enable_storage_encryption
-  iops                 = var.storage_type == "io1" ? 1000 : null
+  identifier        = "${var.project_name}-${var.environment}-postgres"
+  db_name           = var.database_name
+  engine            = "postgres"
+  engine_version    = var.engine_version
+  instance_class    = var.instance_class
+  allocated_storage = var.allocated_storage
+  storage_type      = var.storage_type
+  storage_encrypted = var.enable_storage_encryption
+  iops              = var.storage_type == "io1" ? 1000 : null
 
   # Network configuration - must be in private subnets
-  db_subnet_group_name            = aws_db_subnet_group.main.name
-  publicly_accessible             = false
-  vpc_security_group_ids           = [aws_security_group.rds.id]
-  skip_final_snapshot              = var.skip_final_snapshot
-  final_snapshot_identifier_prefix = "${var.project_name}-${var.environment}-final-snapshot"
+  db_subnet_group_name  = aws_db_subnet_group.main.name
+  publicly_accessible   = false
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  skip_final_snapshot   = var.skip_final_snapshot
 
   # Backup configuration
   backup_retention_period = var.backup_retention_period
@@ -134,11 +134,11 @@ resource "aws_db_instance" "main" {
   iam_database_authentication_enabled = var.enable_iam_database_authentication
 
   # Performance and monitoring
-  performance_insights_enabled    = var.enable_performance_insights
+  performance_insights_enabled          = var.enable_performance_insights
   performance_insights_retention_period = var.enable_performance_insights ? 7 : null
-  enabled_cloudwatch_logs_exports = ["postgresql"]
-  monitoring_interval             = var.monitoring_interval
-  monitoring_role_arn             = var.enable_enhanced_monitoring ? aws_iam_role.rds_monitoring[0].arn : null
+  enabled_cloudwatch_logs_exports       = ["postgresql"]
+  monitoring_interval                   = var.monitoring_interval
+  monitoring_role_arn                   = var.enable_enhanced_monitoring ? aws_iam_role.rds_monitoring[0].arn : null
 
   # Deletion protection
   deletion_protection = var.enable_deletion_protection

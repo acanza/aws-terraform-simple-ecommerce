@@ -59,22 +59,21 @@ module "rds" {
   count  = var.enable_rds ? 1 : 0
   source = "../../modules/rds"
 
-  aws_region           = var.region
-  project_name         = "ecommerce"
-  environment          = "dev"
-  vpc_id               = module.vpc.vpc_id
-  private_subnet_ids   = module.vpc.private_subnets
+  project_name       = "ecommerce"
+  environment        = "dev"
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnets
 
   # PostgreSQL 14 configuration
-  engine_version       = "14"
-  instance_class       = "db.t3.micro"      # Free tier eligible
-  allocated_storage    = 20                 # GB
-  storage_type         = "gp2"
+  engine_version    = "14"
+  instance_class    = "db.t3.micro" # Free tier eligible
+  allocated_storage = 20            # GB
+  storage_type      = "gp2"
 
   # Database credentials (use Secrets Manager in production)
-  database_username    = "postgres"
-  database_password    = var.rds_master_password
-  database_name        = "ecommerce"
+  database_username = "postgres"
+  database_password = var.rds_master_password
+  database_name     = "ecommerce"
 
   # Allow EC2 instance to connect to RDS
   allowed_security_group_ids = [module.security_groups.ec2_security_group_id]
@@ -83,9 +82,9 @@ module "rds" {
   multi_az                           = false
   backup_retention_period            = 7
   skip_final_snapshot                = false
-  enable_deletion_protection         = false  # Easier cleanup in dev
+  enable_deletion_protection         = false # Easier cleanup in dev
   enable_storage_encryption          = true
-  enable_iam_database_authentication = false  # Simplified auth for dev
+  enable_iam_database_authentication = false # Simplified auth for dev
   enable_enhanced_monitoring         = false
   enable_performance_insights        = false
 
