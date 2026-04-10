@@ -312,18 +312,80 @@ data "aws_iam_policy_document" "terraform_infrastructure" {
     }
   }
 
-  # S3 for Terraform state management
+  # S3 for Terraform state management and application buckets
   statement {
     sid    = "AllowS3StateManagement"
     effect = "Allow"
     actions = [
       "s3:ListBucket",
       "s3:GetObject",
-      "s3:PutObject"
+      "s3:PutObject",
+      "s3:DeleteObject"
     ]
     resources = [
       "arn:aws:s3:::${local.namespace}-terraform-state",
       "arn:aws:s3:::${local.namespace}-terraform-state/*"
+    ]
+  }
+
+  # S3 for images bucket management
+  statement {
+    sid    = "AllowS3ImagesBucketManagement"
+    effect = "Allow"
+    actions = [
+      "s3:CreateBucket",
+      "s3:DeleteBucket",
+      "s3:ListBucket",
+      "s3:GetBucketVersioning",
+      "s3:PutBucketVersioning",
+      "s3:GetBucketServerSideEncryptionConfiguration",
+      "s3:PutBucketServerSideEncryptionConfiguration",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:GetBucketPolicy",
+      "s3:PutBucketPolicy",
+      "s3:DeleteBucketPolicy",
+      "s3:ListBucketVersions",
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    resources = [
+      "arn:aws:s3:::${local.namespace}-images*",
+      "arn:aws:s3:::${local.namespace}-images*/*"
+    ]
+  }
+
+  # S3 for frontend bucket management
+  statement {
+    sid    = "AllowS3FrontendBucketManagement"
+    effect = "Allow"
+    actions = [
+      "s3:CreateBucket",
+      "s3:DeleteBucket",
+      "s3:ListBucket",
+      "s3:GetBucketVersioning",
+      "s3:PutBucketVersioning",
+      "s3:GetBucketServerSideEncryptionConfiguration",
+      "s3:PutBucketServerSideEncryptionConfiguration",
+      "s3:GetBucketWebsite",
+      "s3:PutBucketWebsite",
+      "s3:DeleteBucketWebsite",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:GetBucketPolicy",
+      "s3:PutBucketPolicy",
+      "s3:DeleteBucketPolicy",
+      "s3:ListBucketVersions",
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    resources = [
+      "arn:aws:s3:::${local.namespace}-frontend*",
+      "arn:aws:s3:::${local.namespace}-frontend*/*"
     ]
   }
 
@@ -439,6 +501,90 @@ data "aws_iam_policy_document" "ssh_user_policy" {
     resources = [
       "arn:aws:s3:::${local.namespace}-ssm-session-logs/*"
     ]
+  }
+}
+
+# ============================================================================
+# IAM User for Frontend CI/CD Deployment (Optional)
+# ============================================================================
+
+resource "aws_iam_user" "frontend_deployer" {
+  count = var.enable_frontend_user ? 1 : 0
+  name  = var.frontend_user_name
+  tags = merge(
+    local.common_tags,
+    {
+      Purpose = "Frontend CI/CD Deployment"
+    }
+  )
+}
+
+# Policy for frontend bucket deployment
+resource "aws_iam_user_policy" "frontend_deployer_policy" {
+  count  = var.enable_frontend_user ? 1 : 0
+  name   = "${var.frontend_user_name}-s3-policy"
+  user   = aws_iam_user.frontend_deployer[0].name
+  policy = data.aws_iam_policy_document.frontend_deployer_policy[0].json
+}
+
+data "aws_iam_policy_document" "frontend_deployer_policy" {
+  count = var.enable_frontend_user ? 1 : 0
+
+  # List frontend bucket
+  statement {
+    sid    = "AllowFrontendBucketList"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+      "s3:ListBucketVersions"
+    ]
+    resources = [
+      "arn:aws:s3:::${local.namespace}-frontend*"
+    ]
+  }
+
+  # Upload/delete objects in frontend bucket (with version control)
+  statement {
+    sid    = "AllowFrontendObjectDeployment"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:PutObject"
+    ]
+    resources = [
+      "arn:aws:s3:::${local.namespace}-frontend*/*"
+    ]
+  }
+
+  # Invalidate CloudFront cache (if CloudFront is enabled)
+  statement {
+    sid    = "AllowCloudFrontInvalidation"
+    effect = "Allow"
+    actions = [
+      "cloudfront:CreateInvalidation",
+      "cloudfront:ListInvalidations",
+      "cloudfront:GetInvalidation"
+    ]
+    resources = [
+      "arn:aws:cloudfront::*:distribution/*"
+    ]
+    condition {
+      test     = "StringLike"
+      variable = "aws:userid"
+      values   = ["*${local.namespace}*"]
+    }
+  }
+
+  # Read CloudFront distributions (for determining distribution ID)
+  statement {
+    sid    = "AllowCloudFrontRead"
+    effect = "Allow"
+    actions = [
+      "cloudfront:ListDistributions",
+      "cloudfront:GetDistribution"
+    ]
+    resources = ["*"]
   }
 }
 

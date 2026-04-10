@@ -38,6 +38,16 @@ output "ssh_user_arn" {
   value       = try(aws_iam_user.ssh_user[0].arn, null)
 }
 
+output "frontend_deployer_user_name" {
+  description = "IAM username for frontend CI/CD deployment (if enabled)"
+  value       = try(aws_iam_user.frontend_deployer[0].name, null)
+}
+
+output "frontend_deployer_user_arn" {
+  description = "IAM user ARN for frontend CI/CD deployment (if enabled)"
+  value       = try(aws_iam_user.frontend_deployer[0].arn, null)
+}
+
 output "read_only_group_name" {
   description = "IAM group name for read-only access"
   value       = aws_iam_group.read_only.name

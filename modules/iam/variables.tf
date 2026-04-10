@@ -53,6 +53,24 @@ variable "s3_bucket_arn" {
   default     = ""
 }
 
+variable "s3_frontend_bucket_arn" {
+  description = "S3 bucket ARN for frontend (optional, for CI/CD pipeline access)"
+  type        = string
+  default     = ""
+}
+
+variable "enable_frontend_user" {
+  description = "Enable creation of dedicated CI/CD user for frontend deployment"
+  type        = bool
+  default     = false
+}
+
+variable "frontend_user_name" {
+  description = "Username for frontend CI/CD deployment"
+  type        = string
+  default     = "frontend-deployer"
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
