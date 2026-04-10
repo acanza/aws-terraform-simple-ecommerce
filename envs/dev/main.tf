@@ -149,3 +149,37 @@ module "s3_images" {
 # Data source to get current AWS account ID
 data "aws_caller_identity" "current" {
 }
+
+# S3 + CloudFront for hosting the frontend application (React, Next.js, Vue, etc.)
+module "s3_frontend" {
+  source = "../../modules/s3-frontend"
+
+  bucket_name = "ecommerce-dev-frontend-${data.aws_caller_identity.current.account_id}"
+  environment = "dev"
+
+  # Enable CloudFront for global distribution
+  enable_cloudfront = true
+  price_class       = "PriceClass_100"  # Cost-optimized for dev (North America, Europe, Asia)
+
+  # Cache configuration
+  cache_ttl_html    = 300  # 5 minutes for HTML (quick updates)
+  cache_ttl_default = 3600 # 1 hour for other assets
+
+  # For SPA routing (React Router, Vue Router, etc.)
+  index_document = "index.html"
+  error_document = "index.html"  # Redirect 404 to index.html for SPA
+
+  tags = {
+    CostCenter = "engineering"
+  }
+
+  depends_on = [aws_s3_bucket.frontend]
+}
+
+# Temporary placeholder S3 bucket for module dependency
+# Remove this after initial deployment
+resource "aws_s3_bucket" "frontend" {
+  count = 0
+  tags  = {}
+}
+

@@ -170,3 +170,33 @@ output "s3_images_folder_path" {
   value       = module.s3_images.images_folder_path
 }
 
+# ============================================================
+# S3 Frontend + CloudFront
+# ============================================================
+
+output "s3_frontend_bucket_name" {
+  description = "Name of the S3 bucket hosting the frontend application"
+  value       = module.s3_frontend.bucket_name
+}
+
+output "s3_frontend_bucket_arn" {
+  description = "ARN of the S3 frontend bucket"
+  value       = module.s3_frontend.bucket_arn
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront distribution domain name for accessing the frontend"
+  value       = module.s3_frontend.cloudfront_domain_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID (use for cache invalidation)"
+  value       = module.s3_frontend.cloudfront_distribution_id
+}
+
+output "frontend_url" {
+  description = "Full URL to access the frontend application"
+  value       = module.s3_frontend.frontend_url
+}
+
+
