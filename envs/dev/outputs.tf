@@ -106,3 +106,42 @@ output "rds_instance_arn" {
   description = "ARN of the RDS instance"
   value       = try(module.rds[0].db_instance_arn, null)
 }
+
+# ============================================================
+# IAM Users, Roles & Policies
+# ============================================================
+
+output "ec2_instance_profile_name" {
+  description = "IAM instance profile name attached to EC2 (for Secrets Manager and CloudWatch access)"
+  value       = module.iam.ec2_instance_profile_name
+}
+
+output "terraform_user_name" {
+  description = "IAM username for Terraform/DevOps infrastructure management"
+  value       = module.iam.terraform_user_name
+}
+
+output "terraform_user_arn" {
+  description = "IAM user ARN for Terraform/DevOps infrastructure management"
+  value       = module.iam.terraform_user_arn
+}
+
+output "ssh_user_name" {
+  description = "IAM username for SSH/SSM session access to EC2 instances"
+  value       = module.iam.ssh_user_name
+}
+
+output "ssh_user_arn" {
+  description = "IAM user ARN for SSH/SSM session access"
+  value       = module.iam.ssh_user_arn
+}
+
+output "read_only_group_name" {
+  description = "IAM group name for read-only access"
+  value       = module.iam.read_only_group_name
+}
+
+output "read_only_group_arn" {
+  description = "IAM group ARN for read-only access"
+  value       = module.iam.read_only_group_arn
+}

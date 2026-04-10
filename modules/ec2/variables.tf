@@ -43,6 +43,12 @@ variable "security_group_id" {
   type        = string
 }
 
+variable "iam_instance_profile" {
+  description = "IAM instance profile name to attach to EC2 instance for secure credential access (optional)"
+  type        = string
+  default     = null
+}
+
 variable "root_volume_size" {
   description = "Root volume size in GiB (minimum 8 for Amazon Linux 2)"
   type        = number

@@ -21,10 +21,11 @@ data "aws_ami" "amazon_linux_2" {
 
 # EC2 Instance - Minimal cost-optimized configuration
 resource "aws_instance" "main" {
-  ami                 = data.aws_ami.amazon_linux_2.id
-  instance_type       = var.instance_type
-  subnet_id           = var.subnet_id
+  ami                    = data.aws_ami.amazon_linux_2.id
+  instance_type          = var.instance_type
+  subnet_id              = var.subnet_id
   vpc_security_group_ids = [var.security_group_id]
+  iam_instance_profile   = var.iam_instance_profile
 
   # Cost optimization settings
   associate_public_ip_address = var.associate_public_ip

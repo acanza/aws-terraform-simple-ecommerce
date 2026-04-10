@@ -28,6 +28,22 @@ module "security_groups" {
   }
 }
 
+# IAM Roles and Users - Users and roles with minimum permissions
+module "iam" {
+  source = "../../modules/iam"
+
+  region            = var.region
+  environment       = "dev"
+  project_name      = "ecommerce"
+  terraform_user_name = "terraform-ecommerce-dev"
+  enable_ssh_user   = true
+  ssh_user_name     = "ec2-ssh-dev"
+
+  tags = {
+    CostCenter = "engineering"
+  }
+}
+
 # EC2 Instance - Cost-optimized baseline
 module "ec2" {
   source = "../../modules/ec2"
@@ -41,6 +57,9 @@ module "ec2" {
   # Deploy to public subnet 1 for internet accessibility
   subnet_id         = module.vpc.public_subnet_1_id
   security_group_id = module.security_groups.ec2_security_group_id
+
+  # IAM instance profile for secure credential management
+  iam_instance_profile = module.iam.ec2_instance_profile_name
 
   # Cost optimization defaults
   root_volume_size        = 8 # Minimal
