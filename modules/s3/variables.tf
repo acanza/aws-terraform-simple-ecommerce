@@ -53,6 +53,34 @@ variable "lifecycle_expiration_days" {
   }
 }
 
+variable "enable_cloudfront" {
+  description = "Habilitar distribución CloudFront para las imágenes"
+  type        = bool
+  default     = true
+}
+
+variable "cloudfront_price_class" {
+  description = "Clase de precio CloudFront (PriceClass_100, PriceClass_200, PriceClass_All)"
+  type        = string
+  default     = "PriceClass_100"
+
+  validation {
+    condition     = contains(["PriceClass_100", "PriceClass_200", "PriceClass_All"], var.cloudfront_price_class)
+    error_message = "Price class debe ser: PriceClass_100, PriceClass_200, o PriceClass_All."
+  }
+}
+
+variable "cache_ttl_images" {
+  description = "TTL de caché en segundos para imágenes en CloudFront"
+  type        = number
+  default     = 2592000 # 30 días
+
+  validation {
+    condition     = var.cache_ttl_images >= 0
+    error_message = "Cache TTL debe ser >= 0."
+  }
+}
+
 variable "tags" {
   description = "Tags adicionales para el bucket"
   type        = map(string)

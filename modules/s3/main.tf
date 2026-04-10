@@ -29,10 +29,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "images" {
 resource "aws_s3_bucket_public_access_block" "images" {
   bucket = aws_s3_bucket.images.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = var.enable_cloudfront ? false : true
+  block_public_policy     = var.enable_cloudfront ? false : true
+  ignore_public_acls      = var.enable_cloudfront ? false : true
+  restrict_public_buckets = var.enable_cloudfront ? false : true
 }
 
 # Política para otorgar permisos a roles específicos
@@ -135,4 +135,95 @@ resource "aws_s3_bucket_lifecycle_configuration" "images" {
       days = var.lifecycle_expiration_days
     }
   }
+}
+
+# CloudFront Origin Access Control (OAC) para acceso seguro a S3
+resource "aws_cloudfront_origin_access_control" "images" {
+  count = var.enable_cloudfront ? 1 : 0
+
+  name                              = "${var.bucket_name}-oac"
+  description                       = "OAC para ${var.bucket_name}"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+# Distribución CloudFront para distribución global de imágenes
+resource "aws_cloudfront_distribution" "images" {
+  count = var.enable_cloudfront ? 1 : 0
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  price_class         = var.cloudfront_price_class
+  default_root_object = ""
+
+  origin {
+    domain_name              = aws_s3_bucket.images.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.images[0].id
+    origin_id                = "s3-images-origin"
+  }
+
+  # Comportamiento de caché por defecto para imágenes
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "s3-images-origin"
+    compress         = true
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "https-only"
+    default_ttl           = var.cache_ttl_images
+    max_ttl               = var.cache_ttl_images * 2
+    min_ttl               = 0
+  }
+
+  # Restricciones geográficas (sin restricciones)
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  # Certificado TLS
+  viewer_certificate {
+    cloudfront_default_certificate = true
+    minimum_protocol_version       = "TLSv1.2_2021"
+  }
+
+  tags = local.common_tags
+}
+
+# Política de bucket para permitir acceso desde CloudFront (OAC)
+resource "aws_s3_bucket_policy" "images_cloudfront" {
+  count  = var.enable_cloudfront ? 1 : 0
+  bucket = aws_s3_bucket.images.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowCloudFrontOAC"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.images.arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.images[0].arn
+          }
+        }
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.images]
 }

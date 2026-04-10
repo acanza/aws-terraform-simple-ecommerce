@@ -132,6 +132,11 @@ module "s3_images" {
   enable_server_side_encryption = true
   lifecycle_expiration_days     = 0 # Keep images indefinitely in dev
 
+  # Enable CloudFront for image distribution
+  enable_cloudfront          = true
+  cloudfront_price_class     = "PriceClass_100"  # Cost-optimized
+  cache_ttl_images           = 2592000           # 30 days
+
   # Allow EC2 instance role to read and write images
   read_access_role_arns  = [module.iam.ec2_instance_role_arn]
   write_access_role_arns = [module.iam.ec2_instance_role_arn]
