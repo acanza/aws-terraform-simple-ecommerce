@@ -185,3 +185,6 @@ else
   echo -e "${YELLOW}⚠ Found $ISSUES naming issues - review above${NC}"
 fi
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+
+echo ""
+read -p "✓ Presiona Enter para cerrar..." _

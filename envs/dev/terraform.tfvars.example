@@ -1,0 +1,81 @@
+################################################################################
+# Dev Environment Configuration Example
+# 
+# Copy this file to: envs/dev/terraform.tfvars
+# (Note: terraform.tfvars should NOT be committed to git)
+################################################################################
+
+region   = "eu-west-3"
+vpc_cidr = "10.0.0.0/16"
+
+################################################################################
+# OPTIONAL: SSH Access Configuration
+# 
+# SSH access to EC2 instances is DISABLED by default for security
+# To enable SSH, uncomment and set the CIDR block of your trusted network:
+# 
+# trusted_ssh_cidr = "203.0.113.42/32"  # Your office public IP (find: curl https://ifconfig.me)
+# 
+# Examples:
+#   - Single IP: "203.0.113.42/32"
+#   - Corporate VPN: "203.0.113.0/24"
+#   - Office subnet: "10.0.1.0/25"
+# 
+# Leave as null (default) to BLOCK SSH entirely
+################################################################################
+# trusted_ssh_cidr = null
+
+################################################################################
+# Optional: Web Traffic Configuration
+# 
+# Set to 'true' to allow HTTP/HTTPS from the internet
+# Default: false (safer, no public web access unless explicitly enabled)
+################################################################################
+enable_http  = false
+enable_https = false
+
+################################################################################
+# Optional: Database Configuration
+# 
+# Default: 3306 (MySQL)
+# Other options:
+#   - PostgreSQL: 5432
+#   - SQL Server: 1433
+#   - MariaDB: 3306
+#   - Oracle: 1521
+################################################################################
+db_port = 3306
+
+################################################################################
+# RDS PostgreSQL Configuration
+# 
+# Set enable_rds = true to deploy a PostgreSQL database in private subnets
+# By default the database is accessible ONLY from EC2 instances in the VPC
+#
+# SECURITY WARNING for Development:
+# The default password 'devPassword123!' is visible in this example.
+# NEVER commit actual passwords to git. Options for production:
+#
+#   1. AWS Secrets Manager (recommended):
+#      - Generate strong password using AWS Console
+#      - Store in Secrets Manager and reference it
+#
+#   2. Use Terraform Cloud Variables:
+#      - Set rds_master_password as a sensitive variable
+#      - Pass via environment: export TF_VAR_rds_master_password="your-password"
+#
+#   3. Use environment variable:
+#      export TF_VAR_rds_master_password=$(openssl rand -base64 32)
+#      terraform apply
+################################################################################
+
+enable_rds           = true
+rds_master_password  = "devPassword123!"  # ⚠️  Change this for any real environment
+
+# Optional RDS parameters (uncomment to customize):
+# 
+# PostgreSQL version: "13", "14" (default), "15", "16"
+# - Instance class: "db.t3.micro" (default/free), "db.t3.small", "db.t3.medium"
+# - Storage: 20 GB (default), increase as needed
+# - Multi-AZ: false (dev), true (production)
+

@@ -224,14 +224,13 @@ echo -e "  ${YELLOW}MEDIUM:   $MEDIUM${NC}"
 
 if [[ "$CRITICAL" -gt 0 ]]; then
   echo -e "\n${RED}❌ Critical risks found - must address before planning${NC}"
-  exit 1
 elif [[ "$HIGH" -gt 0 ]]; then
   echo -e "\n${YELLOW}⚠️  High-risk issues found - review terraform plan carefully${NC}"
-  exit 0
 elif [[ "$MEDIUM" -gt 0 ]]; then
   echo -e "\n${YELLOW}💡 Medium-risk issues found - verify with terraform plan${NC}"
-  exit 0
 else
   echo -e "\n${GREEN}✓ No replacement risks detected${NC}"
-  exit 0
 fi
+
+echo ""
+read -p "✓ Presiona Enter para cerrar..." _
