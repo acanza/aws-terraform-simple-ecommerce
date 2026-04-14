@@ -37,3 +37,22 @@ output "images_url" {
   description = "URL para acceder a las imágenes (CloudFront o S3)"
   value       = var.enable_cloudfront ? "https://${aws_cloudfront_distribution.images[0].domain_name}" : "s3://${aws_s3_bucket.images.id}"
 }
+
+# ============================================================
+# S3 ACCESS LOGGING OUTPUTS
+# ============================================================
+
+output "logs_bucket_name" {
+  description = "S3 bucket name for access logs"
+  value       = aws_s3_bucket.logs.id
+}
+
+output "logs_bucket_arn" {
+  description = "S3 bucket ARN for access logs"
+  value       = aws_s3_bucket.logs.arn
+}
+
+output "logs_prefix" {
+  description = "Prefix where images access logs are stored"
+  value       = "images-access-logs/"
+}

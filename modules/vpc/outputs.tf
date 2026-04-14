@@ -67,3 +67,13 @@ output "vpc_endpoints_security_group_id" {
   description = "Security group ID for VPC Endpoints"
   value       = aws_security_group.vpc_endpoints.id
 }
+
+output "vpc_flow_logs_group_name" {
+  description = "CloudWatch log group name for VPC Flow Logs"
+  value       = aws_cloudwatch_log_group.vpc_flow_logs.name
+}
+
+output "vpc_flow_logs_group_arn" {
+  description = "CloudWatch log group ARN for VPC Flow Logs"
+  value       = aws_cloudwatch_log_group.vpc_flow_logs.arn
+}

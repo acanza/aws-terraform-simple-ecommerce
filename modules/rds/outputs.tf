@@ -50,6 +50,21 @@ output "database_username" {
   sensitive   = true
 }
 
+output "rds_cloudwatch_logs_exports" {
+  description = "List of CloudWatch log types exported by RDS"
+  value       = aws_db_instance.main.enabled_cloudwatch_logs_exports
+}
+
+output "rds_monitoring_enabled" {
+  description = "Whether RDS enhanced monitoring is enabled"
+  value       = var.enable_enhanced_monitoring
+}
+
+output "rds_monitoring_interval" {
+  description = "RDS enhanced monitoring interval in seconds"
+  value       = var.monitoring_interval > 0 ? var.monitoring_interval : null
+}
+
 output "engine_version" {
   description = "PostgreSQL engine version"
   value       = aws_db_instance.main.engine_version
