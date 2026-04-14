@@ -112,10 +112,10 @@ resource "aws_db_instance" "main" {
   iops              = var.storage_type == "io1" ? 1000 : null
 
   # Network configuration - must be in private subnets
-  db_subnet_group_name  = aws_db_subnet_group.main.name
-  publicly_accessible   = false
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  publicly_accessible    = false
   vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot   = var.skip_final_snapshot
+  skip_final_snapshot    = var.skip_final_snapshot
 
   # Backup configuration
   backup_retention_period = var.backup_retention_period

@@ -179,9 +179,9 @@ resource "aws_cloudfront_distribution" "images" {
     }
 
     viewer_protocol_policy = "https-only"
-    default_ttl           = var.cache_ttl_images
-    max_ttl               = var.cache_ttl_images * 2
-    min_ttl               = 0
+    default_ttl            = var.cache_ttl_images
+    max_ttl                = var.cache_ttl_images * 2
+    min_ttl                = 0
   }
 
   # Restricciones geográficas (sin restricciones)

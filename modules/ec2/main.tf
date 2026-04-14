@@ -38,9 +38,9 @@ resource "aws_instance" "main" {
     volume_size           = var.root_volume_size
     delete_on_termination = true
 
-    # Minimal encryption - use default AWS encryption to reduce complexity
-    # For cost optimization, do not enable additional encryption overhead
-    encrypted = false
+    # ✅ SECURITY FIX: Enable EBS encryption for data protection at rest
+    # AWS-managed encryption (no additional cost)
+    encrypted = true
   }
 
   metadata_options {

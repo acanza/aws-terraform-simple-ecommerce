@@ -137,8 +137,8 @@ resource "aws_cloudfront_distribution" "frontend" {
 
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
-    default_ttl           = var.cache_ttl_default
-    max_ttl               = var.cache_ttl_default * 2
+    default_ttl            = var.cache_ttl_default
+    max_ttl                = var.cache_ttl_default * 2
   }
 
   # Specific cache behavior for HTML files (shorter TTL)
@@ -158,8 +158,8 @@ resource "aws_cloudfront_distribution" "frontend" {
 
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
-    default_ttl           = var.cache_ttl_html
-    max_ttl               = var.cache_ttl_html * 2
+    default_ttl            = var.cache_ttl_html
+    max_ttl                = var.cache_ttl_html * 2
   }
 
   # Cache behavior for static assets (JS, CSS, images) - longer TTL
@@ -179,8 +179,8 @@ resource "aws_cloudfront_distribution" "frontend" {
 
     viewer_protocol_policy = "https-only"
     compress               = true
-    default_ttl           = 86400 * 30 # 30 days
-    max_ttl               = 86400 * 365 # 365 days
+    default_ttl            = 86400 * 30  # 30 days
+    max_ttl                = 86400 * 365 # 365 days
   }
 
   viewer_certificate {
