@@ -174,7 +174,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   # Specific cache behavior for HTML files (shorter TTL)
-  cache_behavior {
+  ordered_cache_behavior {
     path_pattern     = "*.html"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
@@ -195,7 +195,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   # Cache behavior for static assets (JS, CSS, images) - longer TTL
-  cache_behavior {
+  ordered_cache_behavior {
     path_pattern     = "static/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]

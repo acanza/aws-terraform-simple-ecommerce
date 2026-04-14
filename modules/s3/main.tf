@@ -131,6 +131,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "images" {
     id     = "expire-old-images"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = var.lifecycle_expiration_days
     }
