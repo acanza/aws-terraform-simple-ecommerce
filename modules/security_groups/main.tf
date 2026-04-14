@@ -51,19 +51,75 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_https" {
   )
 }
 
-# Outbound: Allow all traffic (EC2 needs to reach RDS, S3, NAT gateway, etc.)
-resource "aws_vpc_security_group_egress_rule" "ec2_all_outbound" {
-  description       = "Allow all outbound traffic (to RDS, S3, internet, etc.)"
-  from_port         = -1
-  to_port           = -1
-  ip_protocol       = "-1"
+# ============================================================
+# OUTBOUND (EGRESS) RULES - Restrict to necessary services
+# ============================================================
+# ✅ SECURITY FIX P1: Replace "allow all" with restrictive rules
+
+# Outbound 1: Allow EC2 to RDS PostgreSQL (port 5432)
+resource "aws_vpc_security_group_egress_rule" "ec2_to_rds" {
+  description                  = "EC2 to RDS PostgreSQL"
+  from_port                    = var.db_port
+  to_port                      = var.db_port
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.rds.id
+  security_group_id            = aws_security_group.ec2.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-ec2-to-rds"
+    }
+  )
+}
+
+# Outbound 2: Allow EC2 to S3 via HTTPS (port 443)
+resource "aws_vpc_security_group_egress_rule" "ec2_to_s3" {
+  description       = "EC2 to S3 via HTTPS for uploads/downloads"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
   cidr_ipv4         = "0.0.0.0/0"
   security_group_id = aws_security_group.ec2.id
 
   tags = merge(
     local.common_tags,
     {
-      Name = "${var.project_name}-${var.environment}-ec2-out-all"
+      Name = "${var.project_name}-${var.environment}-ec2-to-s3"
+    }
+  )
+}
+
+# Outbound 3: Allow EC2 to DNS (port 53 UDP)
+resource "aws_vpc_security_group_egress_rule" "ec2_dns" {
+  description       = "EC2 DNS resolution"
+  from_port         = 53
+  to_port           = 53
+  ip_protocol       = "udp"
+  cidr_ipv4         = "0.0.0.0/0"
+  security_group_id = aws_security_group.ec2.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-ec2-dns"
+    }
+  )
+}
+
+# Outbound 4: Allow EC2 to Secrets Manager via HTTPS (port 443)
+resource "aws_vpc_security_group_egress_rule" "ec2_to_secrets" {
+  description       = "EC2 to AWS Secrets Manager for RDS credentials"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+  security_group_id = aws_security_group.ec2.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-ec2-to-secrets"
     }
   )
 }

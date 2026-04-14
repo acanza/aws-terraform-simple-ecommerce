@@ -95,6 +95,38 @@ resource "aws_s3_bucket_policy" "frontend" {
   depends_on = [aws_s3_bucket_public_access_block.frontend]
 }
 
+# ============================================================
+# S3 ACCESS LOGGING
+# ============================================================
+# ✅ SECURITY FIX P1: Enable access logging for audit trail
+
+resource "aws_s3_bucket" "logs" {
+  bucket = "${var.bucket_name}-logs"
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.bucket_name}-logs"
+    }
+  )
+}
+
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_logging" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "frontend-access-logs/"
+}
+
 # CloudFront Origin Access Control (OAC) for secure S3 access
 resource "aws_cloudfront_origin_access_control" "s3" {
   count = var.enable_cloudfront ? 1 : 0
