@@ -251,3 +251,102 @@ resource "aws_route_table_association" "private_2" {
   subnet_id      = aws_subnet.private_2.id
   route_table_id = aws_route_table.private.id
 }
+
+# ============================================================
+# VPC ENDPOINTS - Connectivity Improvements
+# ============================================================
+# ✅ CONNECTIVITY FIX: Add VPC Endpoints for S3 and Secrets Manager
+# Benefits: Improved security (traffic stays within AWS network),
+#           reduced NAT Gateway dependency and data transfer costs
+
+# Security Group for VPC Endpoints (Interface type)
+resource "aws_security_group" "vpc_endpoints" {
+  name        = "${var.project_name}-${var.environment}-vpc-endpoints-sg"
+  description = "Security group for VPC Endpoint interfaces"
+  vpc_id      = aws_vpc.main.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-vpc-endpoints-sg"
+    }
+  )
+}
+
+# Inbound: Allow HTTPS from VPC instances (for Secrets Manager access)
+resource "aws_vpc_security_group_ingress_rule" "vpc_endpoints_from_vpc" {
+  description       = "HTTPS from VPC for Secrets Manager access"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  cidr_ipv4         = var.vpc_cidr
+  security_group_id = aws_security_group.vpc_endpoints.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-vpc-endpoints-from-vpc"
+    }
+  )
+}
+
+# Outbound: Allow all (VPC Endpoints need to reach AWS services)
+resource "aws_vpc_security_group_egress_rule" "vpc_endpoints_all" {
+  description       = "All outbound traffic from VPC Endpoints"
+  from_port         = -1
+  to_port           = -1
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+  security_group_id = aws_security_group.vpc_endpoints.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-vpc-endpoints-outbound"
+    }
+  )
+}
+
+# ============================================================
+# S3 Gateway Endpoint
+# ============================================================
+# Gateway endpoints are available at no additional charge
+# Provides direct access from EC2/RDS to S3 without NAT
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id       = aws_vpc.main.id
+  service_name = "com.amazonaws.${var.region}.s3"
+  route_table_ids = concat(
+    [aws_route_table.public.id],
+    [aws_route_table.private.id]
+  )
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-s3-endpoint"
+    }
+  )
+}
+
+# ============================================================
+# Secrets Manager Interface Endpoint
+# ============================================================
+# Allows EC2 to retrieve RDS credentials without internet access
+# Cost: ~$7/month per endpoint
+
+resource "aws_vpc_endpoint" "secrets_manager" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.region}.secretsmanager"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+  private_dns_enabled = true
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-secrets-manager-endpoint"
+    }
+  )
+}
