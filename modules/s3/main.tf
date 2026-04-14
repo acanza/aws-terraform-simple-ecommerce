@@ -94,7 +94,7 @@ data "aws_iam_policy_document" "bucket_policy" {
     sid    = "DenyUnencryptedTransport"
     effect = "Deny"
 
-    principals = {
+    principals {
       type        = "*"
       identifiers = ["*"]
     }
