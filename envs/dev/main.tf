@@ -32,12 +32,12 @@ module "security_groups" {
 module "iam" {
   source = "../../modules/iam"
 
-  region            = var.region
-  environment       = "dev"
-  project_name      = "ecommerce"
+  region              = var.region
+  environment         = "dev"
+  project_name        = "ecommerce"
   terraform_user_name = "terraform-ecommerce-dev"
-  enable_ssh_user   = true
-  ssh_user_name     = "ec2-ssh-dev"
+  enable_ssh_user     = true
+  ssh_user_name       = "ec2-ssh-dev"
 
   # S3 bucket ARN for EC2 instance role (will be set after bucket creation)
   s3_bucket_arn = ""
@@ -107,7 +107,7 @@ module "rds" {
   enable_deletion_protection         = false # Easier cleanup in dev
   enable_storage_encryption          = true
   enable_iam_database_authentication = false # Simplified auth for dev
-  enable_enhanced_monitoring         = false
+  enable_enhanced_monitoring         = true  # ✅ SECURITY FIX: Enable RDS CloudWatch logs
   enable_performance_insights        = false
 
   tags = {
@@ -133,9 +133,9 @@ module "s3_images" {
   lifecycle_expiration_days     = 0 # Keep images indefinitely in dev
 
   # Enable CloudFront for image distribution
-  enable_cloudfront          = true
-  cloudfront_price_class     = "PriceClass_100"  # Cost-optimized
-  cache_ttl_images           = 2592000           # 30 days
+  enable_cloudfront      = true
+  cloudfront_price_class = "PriceClass_100" # Cost-optimized
+  cache_ttl_images       = 2592000          # 30 days
 
   # Allow EC2 instance role to read and write images
   read_access_role_arns  = [module.iam.ec2_instance_role_arn]
@@ -164,7 +164,7 @@ module "s3_frontend" {
 
   # Enable CloudFront for global distribution
   enable_cloudfront = true
-  price_class       = "PriceClass_100"  # Cost-optimized for dev (North America, Europe, Asia)
+  price_class       = "PriceClass_100" # Cost-optimized for dev (North America, Europe, Asia)
 
   # Cache configuration
   cache_ttl_html    = 300  # 5 minutes for HTML (quick updates)
@@ -172,7 +172,7 @@ module "s3_frontend" {
 
   # For SPA routing (React Router, Vue Router, etc.)
   index_document = "index.html"
-  error_document = "index.html"  # Redirect 404 to index.html for SPA
+  error_document = "index.html" # Redirect 404 to index.html for SPA
 
   tags = {
     CostCenter = "engineering"

@@ -94,7 +94,7 @@ data "aws_iam_policy_document" "bucket_policy" {
     sid    = "DenyUnencryptedTransport"
     effect = "Deny"
 
-    principals = {
+    principals {
       type        = "*"
       identifiers = ["*"]
     }
@@ -131,10 +131,44 @@ resource "aws_s3_bucket_lifecycle_configuration" "images" {
     id     = "expire-old-images"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = var.lifecycle_expiration_days
     }
   }
+}
+
+# ============================================================
+# S3 ACCESS LOGGING
+# ============================================================
+# ✅ SECURITY FIX P1: Enable access logging for audit trail
+
+resource "aws_s3_bucket" "logs" {
+  bucket = "${var.bucket_name}-logs"
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.bucket_name}-logs"
+    }
+  )
+}
+
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_logging" "images" {
+  bucket = aws_s3_bucket.images.id
+
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "images-access-logs/"
 }
 
 # CloudFront Origin Access Control (OAC) para acceso seguro a S3
@@ -179,9 +213,9 @@ resource "aws_cloudfront_distribution" "images" {
     }
 
     viewer_protocol_policy = "https-only"
-    default_ttl           = var.cache_ttl_images
-    max_ttl               = var.cache_ttl_images * 2
-    min_ttl               = 0
+    default_ttl            = var.cache_ttl_images
+    max_ttl                = var.cache_ttl_images * 2
+    min_ttl                = 0
   }
 
   # Restricciones geográficas (sin restricciones)

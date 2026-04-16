@@ -95,6 +95,38 @@ resource "aws_s3_bucket_policy" "frontend" {
   depends_on = [aws_s3_bucket_public_access_block.frontend]
 }
 
+# ============================================================
+# S3 ACCESS LOGGING
+# ============================================================
+# ✅ SECURITY FIX P1: Enable access logging for audit trail
+
+resource "aws_s3_bucket" "logs" {
+  bucket = "${var.bucket_name}-logs"
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.bucket_name}-logs"
+    }
+  )
+}
+
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_logging" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "frontend-access-logs/"
+}
+
 # CloudFront Origin Access Control (OAC) for secure S3 access
 resource "aws_cloudfront_origin_access_control" "s3" {
   count = var.enable_cloudfront ? 1 : 0
@@ -137,12 +169,12 @@ resource "aws_cloudfront_distribution" "frontend" {
 
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
-    default_ttl           = var.cache_ttl_default
-    max_ttl               = var.cache_ttl_default * 2
+    default_ttl            = var.cache_ttl_default
+    max_ttl                = var.cache_ttl_default * 2
   }
 
   # Specific cache behavior for HTML files (shorter TTL)
-  cache_behavior {
+  ordered_cache_behavior {
     path_pattern     = "*.html"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
@@ -158,12 +190,12 @@ resource "aws_cloudfront_distribution" "frontend" {
 
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
-    default_ttl           = var.cache_ttl_html
-    max_ttl               = var.cache_ttl_html * 2
+    default_ttl            = var.cache_ttl_html
+    max_ttl                = var.cache_ttl_html * 2
   }
 
   # Cache behavior for static assets (JS, CSS, images) - longer TTL
-  cache_behavior {
+  ordered_cache_behavior {
     path_pattern     = "static/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
@@ -179,8 +211,8 @@ resource "aws_cloudfront_distribution" "frontend" {
 
     viewer_protocol_policy = "https-only"
     compress               = true
-    default_ttl           = 86400 * 30 # 30 days
-    max_ttl               = 86400 * 365 # 365 days
+    default_ttl            = 86400 * 30  # 30 days
+    max_ttl                = 86400 * 365 # 365 days
   }
 
   viewer_certificate {

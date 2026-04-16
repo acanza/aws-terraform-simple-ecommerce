@@ -52,3 +52,28 @@ output "nat_gateway_id" {
   description = "ID of the NAT Gateway"
   value       = aws_nat_gateway.main.id
 }
+
+output "s3_endpoint_id" {
+  description = "ID of the S3 VPC Endpoint"
+  value       = aws_vpc_endpoint.s3.id
+}
+
+output "secrets_manager_endpoint_id" {
+  description = "ID of the Secrets Manager VPC Endpoint"
+  value       = aws_vpc_endpoint.secrets_manager.id
+}
+
+output "vpc_endpoints_security_group_id" {
+  description = "Security group ID for VPC Endpoints"
+  value       = aws_security_group.vpc_endpoints.id
+}
+
+output "vpc_flow_logs_group_name" {
+  description = "CloudWatch log group name for VPC Flow Logs"
+  value       = aws_cloudwatch_log_group.vpc_flow_logs.name
+}
+
+output "vpc_flow_logs_group_arn" {
+  description = "CloudWatch log group ARN for VPC Flow Logs"
+  value       = aws_cloudwatch_log_group.vpc_flow_logs.arn
+}
