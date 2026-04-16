@@ -49,6 +49,8 @@ resource "aws_instance" "main" {
     http_put_response_hop_limit = 1
   }
 
+  user_data = var.user_data
+
   tags = merge(
     {
       Name          = "${var.project_name}-${var.environment}-${var.instance_name}"

@@ -21,21 +21,21 @@ variable "trusted_ssh_cidr" {
 }
 
 variable "enable_http" {
-  description = "Enable HTTP (port 80) to EC2 instances"
+  description = "Enable HTTP (port 80) to EC2 instances (required for WordPress)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_https" {
-  description = "Enable HTTPS (port 443) to EC2 instances"
+  description = "Enable HTTPS (port 443) to EC2 instances (required for WordPress)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "db_port" {
   description = "Database port for RDS (default 3306 for MySQL, 5432 for PostgreSQL)"
   type        = number
-  default     = 3306
+  default     = 5432
 }
 
 variable "rds_master_password" {
@@ -53,4 +53,41 @@ variable "enable_rds" {
   description = "Enable RDS PostgreSQL database deployment"
   type        = bool
   default     = true
+}
+
+variable "wordpress_database_name" {
+  description = "Database name for WordPress"
+  type        = string
+  default     = "wordpress"
+  validation {
+    condition     = can(regex("^[a-z0-9_]{1,63}$", var.wordpress_database_name))
+    error_message = "Database name must be lowercase alphanumeric with underscores, max 63 chars."
+  }
+}
+
+variable "wordpress_admin_user" {
+  description = "WordPress administrator username"
+  type        = string
+  default     = "admin"
+  validation {
+    condition     = length(var.wordpress_admin_user) >= 1 && length(var.wordpress_admin_user) <= 60
+    error_message = "WordPress admin user must be between 1 and 60 characters."
+  }
+}
+
+variable "wordpress_admin_password" {
+  description = "WordPress administrator password (minimum 8 characters)"
+  type        = string
+  sensitive   = true
+  default     = "WordPress2024!" # Only for development - CHANGE for production
+  validation {
+    condition     = length(var.wordpress_admin_password) >= 8 && length(var.wordpress_admin_password) <= 255
+    error_message = "WordPress admin password must be between 8 and 255 characters."
+  }
+}
+
+variable "wordpress_db_host" {
+  description = "RDS database host/endpoint (will be set by outputs after RDS creation, or use predictable name)"
+  type        = string
+  default     = "" # Will be overridden after RDS is created
 }

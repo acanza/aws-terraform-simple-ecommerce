@@ -47,14 +47,14 @@ module "iam" {
   }
 }
 
-# EC2 Instance - Cost-optimized baseline
+# EC2 Instance - WordPress web server
 module "ec2" {
   source = "../../modules/ec2"
 
   region        = var.region
   environment   = "dev"
   project_name  = "ecommerce"
-  instance_name = "web-server-01"
+  instance_name = "wordpress-server"
   instance_type = "t4g.micro" # Free tier eligible, ARM-based
 
   # Deploy to public subnet 1 for internet accessibility
@@ -64,8 +64,11 @@ module "ec2" {
   # IAM instance profile for secure credential management
   iam_instance_profile = module.iam.ec2_instance_profile_name
 
+  # WordPress initialization script
+  user_data = local.wordpress_user_data
+
   # Cost optimization defaults
-  root_volume_size        = 8 # Minimal
+  root_volume_size        = 20 # Increased for WordPress
   root_volume_type        = "gp3"
   enable_ebs_optimization = false
   monitoring_enabled      = false
@@ -95,7 +98,7 @@ module "rds" {
   # Database credentials (use Secrets Manager in production)
   database_username = "postgres"
   database_password = var.rds_master_password
-  database_name     = "ecommerce"
+  database_name     = var.wordpress_database_name
 
   # Allow EC2 instance to connect to RDS
   allowed_security_group_ids = [module.security_groups.ec2_security_group_id]

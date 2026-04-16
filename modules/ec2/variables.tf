@@ -87,6 +87,12 @@ variable "monitoring_enabled" {
   default     = false
 }
 
+variable "user_data" {
+  description = "User data script to run on EC2 instance launch (optional)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Additional tags to apply to resources"
   type        = map(string)

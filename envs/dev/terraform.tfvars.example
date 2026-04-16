@@ -26,28 +26,30 @@ vpc_cidr = "10.0.0.0/16"
 # trusted_ssh_cidr = null
 
 ################################################################################
-# Optional: Web Traffic Configuration
+# Web Traffic Configuration (Required for WordPress)
 # 
 # Set to 'true' to allow HTTP/HTTPS from the internet
-# Default: false (safer, no public web access unless explicitly enabled)
 ################################################################################
-enable_http  = false
-enable_https = false
+enable_http  = true
+enable_https = true
 
 ################################################################################
-# Optional: Database Configuration
-# 
-# Default: 3306 (MySQL)
-# Other options:
-#   - PostgreSQL: 5432
-#   - SQL Server: 1433
-#   - MariaDB: 3306
-#   - Oracle: 1521
+# Database Configuration (PostgreSQL for WordPress)
 ################################################################################
-db_port = 3306
+db_port = 5432
 
 ################################################################################
 # RDS PostgreSQL Configuration
+################################################################################
+enable_rds          = true
+rds_master_password = "ChangeMe123!"  # ⚠️ CHANGE FOR PRODUCTION!
+
+################################################################################
+# WordPress Configuration
+################################################################################
+wordpress_database_name   = "wordpress"
+wordpress_admin_user      = "admin"              # Change to your preferred username
+wordpress_admin_password  = "ChangeMe123!"       # ⚠️ CHANGE FOR PRODUCTION!
 # 
 # Set enable_rds = true to deploy a PostgreSQL database in private subnets
 # By default the database is accessible ONLY from EC2 instances in the VPC
