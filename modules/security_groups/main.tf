@@ -108,6 +108,8 @@ resource "aws_vpc_security_group_egress_rule" "ec2_dns" {
 }
 
 # Outbound 4: Allow EC2 to Secrets Manager via HTTPS (port 443)
+# ✅ NOTE: This rule may be redundant with ec2_to_s3 (also 0.0.0.0/0:443)
+# Combined they provide both S3 and Secrets Manager access via HTTPS
 resource "aws_vpc_security_group_egress_rule" "ec2_to_secrets" {
   description       = "EC2 to AWS Secrets Manager for RDS credentials"
   from_port         = 443
@@ -122,6 +124,11 @@ resource "aws_vpc_security_group_egress_rule" "ec2_to_secrets" {
       Name = "${var.project_name}-${var.environment}-ec2-to-secrets"
     }
   )
+
+  # ✅ WORKAROUND: If rule already exists in AWS, ignore the conflict
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # ============================================================

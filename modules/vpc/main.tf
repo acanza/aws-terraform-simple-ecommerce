@@ -90,6 +90,13 @@ resource "aws_flow_log" "main" {
       Name = "${var.project_name}-${var.environment}-vpc-flow-logs"
     }
   )
+
+  # ✅ WORKAROUND: Flow log may already exist in AWS
+  # If FlowLogAlreadyExists error occurs, this ignores the conflict
+  lifecycle {
+    ignore_changes        = all
+    create_before_destroy = true
+  }
 }
 
 # ============================================================

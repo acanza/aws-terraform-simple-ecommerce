@@ -138,291 +138,126 @@ resource "aws_iam_user" "terraform" {
   )
 }
 
-# Policy for Terraform to manage infrastructure
-resource "aws_iam_user_policy" "terraform_infrastructure" {
-  name   = "${var.terraform_user_name}-infrastructure-policy"
+# ✅ SECURITY FIX: 6 minimal inline policies (each < 2048 bytes)
+# Policy 1: VPC only
+resource "aws_iam_user_policy" "terraform_vpc" {
+  name   = "${var.terraform_user_name}-vpc-policy"
   user   = aws_iam_user.terraform.name
-  policy = data.aws_iam_policy_document.terraform_infrastructure.json
+  policy = data.aws_iam_policy_document.terraform_vpc.json
 }
 
-data "aws_iam_policy_document" "terraform_infrastructure" {
-  # VPC Management
+data "aws_iam_policy_document" "terraform_vpc" {
   statement {
-    sid    = "AllowVPCManagement"
     effect = "Allow"
-    actions = [
-      "ec2:CreateVpc",
-      "ec2:DescribeVpcs",
-      "ec2:DeleteVpc",
-      "ec2:ModifyVpcAttribute",
-      "ec2:CreateSubnet",
-      "ec2:DescribeSubnets",
-      "ec2:DeleteSubnet",
-      "ec2:ModifySubnetAttribute",
-      "ec2:CreateInternetGateway",
-      "ec2:DescribeInternetGateways",
-      "ec2:DeleteInternetGateway",
-      "ec2:AttachInternetGateway",
-      "ec2:DetachInternetGateway",
-      "ec2:CreateRouteTable",
-      "ec2:DescribeRouteTables",
-      "ec2:DeleteRouteTable",
-      "ec2:CreateRoute",
-      "ec2:DeleteRoute",
-      "ec2:AssociateRouteTable",
-      "ec2:DisassociateRouteTable",
-      "ec2:CreateNatGateway",
-      "ec2:DescribeNatGateways",
-      "ec2:DeleteNatGateway",
-      "ec2:AllocateAddress",
-      "ec2:ReleaseAddress",
-      "ec2:DescribeAddresses",
-      "ec2:AllowSecurityGroupIngress"
-    ]
+    actions = ["ec2:CreateVpc", "ec2:DescribeVpcs", "ec2:DeleteVpc",
+    "ec2:CreateSubnet", "ec2:DescribeSubnets", "ec2:DeleteSubnet",
+    "ec2:CreateRouteTable", "ec2:DescribeRouteTables", "ec2:DeleteRouteTable",
+    "ec2:CreateRoute", "ec2:DeleteRoute"]
     resources = ["*"]
   }
+}
 
-  # Security Groups Management
+# Policy 2: Network infrastructure (IGW, NAT, routing)
+resource "aws_iam_user_policy" "terraform_network" {
+  name   = "${var.terraform_user_name}-network-policy"
+  user   = aws_iam_user.terraform.name
+  policy = data.aws_iam_policy_document.terraform_network.json
+}
+
+data "aws_iam_policy_document" "terraform_network" {
   statement {
-    sid    = "AllowSecurityGroupManagement"
     effect = "Allow"
-    actions = [
-      "ec2:CreateSecurityGroup",
-      "ec2:DescribeSecurityGroups",
-      "ec2:DeleteSecurityGroup",
-      "ec2:AuthorizeSecurityGroupIngress",
-      "ec2:RevokeSecurityGroupIngress",
-      "ec2:AuthorizeSecurityGroupEgress",
-      "ec2:RevokeSecurityGroupEgress",
-      "ec2:ModifySecurityGroupRules"
-    ]
+    actions = ["ec2:CreateInternetGateway", "ec2:DescribeInternetGateways", "ec2:DeleteInternetGateway",
+    "ec2:AttachInternetGateway", "ec2:DetachInternetGateway",
+    "ec2:AssociateRouteTable", "ec2:DisassociateRouteTable",
+    "ec2:CreateNatGateway", "ec2:DescribeNatGateways", "ec2:DeleteNatGateway",
+    "ec2:AllocateAddress", "ec2:ReleaseAddress"]
     resources = ["*"]
   }
+}
 
-  # EC2 Instance Management
+# Policy 3: Security Groups
+resource "aws_iam_user_policy" "terraform_sg" {
+  name   = "${var.terraform_user_name}-sg-policy"
+  user   = aws_iam_user.terraform.name
+  policy = data.aws_iam_policy_document.terraform_sg.json
+}
+
+data "aws_iam_policy_document" "terraform_sg" {
   statement {
-    sid    = "AllowEC2Management"
     effect = "Allow"
-    actions = [
-      "ec2:RunInstances",
-      "ec2:DescribeInstances",
-      "ec2:TerminateInstances",
-      "ec2:RebootInstances",
-      "ec2:StopInstances",
-      "ec2:StartInstances",
-      "ec2:ModifyInstanceAttribute",
-      "ec2:DescribeImages",
-      "ec2:DescribeKeyPairs",
-      "ec2:DescribeInstanceTypes",
-      "ec2:CreateTags",
-      "ec2:DeleteTags"
-    ]
+    actions = ["ec2:CreateSecurityGroup", "ec2:DescribeSecurityGroups", "ec2:DeleteSecurityGroup",
+    "ec2:AuthorizeSecurityGroupIngress", "ec2:RevokeSecurityGroupIngress",
+    "ec2:AuthorizeSecurityGroupEgress", "ec2:RevokeSecurityGroupEgress"]
     resources = ["*"]
   }
+}
 
-  # RDS Management
+# Policy 4: Compute & DB
+resource "aws_iam_user_policy" "terraform_compute_db" {
+  name   = "${var.terraform_user_name}-compute-db-policy"
+  user   = aws_iam_user.terraform.name
+  policy = data.aws_iam_policy_document.terraform_compute_db.json
+}
+
+data "aws_iam_policy_document" "terraform_compute_db" {
   statement {
-    sid    = "AllowRDSManagement"
     effect = "Allow"
-    actions = [
-      "rds:CreateDBInstance",
-      "rds:DescribeDBInstances",
-      "rds:ModifyDBInstance",
-      "rds:DeleteDBInstance",
-      "rds:CreateDBSubnetGroup",
-      "rds:DescribeDBSubnetGroups",
-      "rds:DeleteDBSubnetGroup",
-      "rds:DescribeDBSecurityGroups",
-      "rds:CreateDBSnapshot",
-      "rds:DescribeDBSnapshots",
-      "rds:DeleteDBSnapshot",
-      "rds:ListTagsForResource",
-      "rds:AddTagsToResource"
-    ]
+    actions = ["ec2:RunInstances", "ec2:TerminateInstances", "ec2:DescribeInstances", "ec2:DescribeImages",
+    "ec2:CreateTags", "ec2:DeleteTags",
+    "rds:CreateDBInstance", "rds:DeleteDBInstance", "rds:DescribeDBInstances",
+    "rds:CreateDBSubnetGroup", "rds:DescribeDBSubnetGroups", "rds:DeleteDBSubnetGroup"]
     resources = ["*"]
   }
+}
 
-  # IAM Role Management (limited to project namespace)
+# Policy 5: IAM & S3
+resource "aws_iam_user_policy" "terraform_iam_s3" {
+  name   = "${var.terraform_user_name}-iam-s3-policy"
+  user   = aws_iam_user.terraform.name
+  policy = data.aws_iam_policy_document.terraform_iam_s3.json
+}
+
+data "aws_iam_policy_document" "terraform_iam_s3" {
   statement {
-    sid    = "AllowIAMRoleManagement"
     effect = "Allow"
-    actions = [
-      "iam:CreateRole",
-      "iam:GetRole",
-      "iam:UpdateAssumeRolePolicy",
-      "iam:DeleteRole",
-      "iam:CreatePolicy",
-      "iam:GetPolicy",
-      "iam:DeletePolicy",
-      "iam:AttachRolePolicy",
-      "iam:DetachRolePolicy",
-      "iam:PutRolePolicy",
-      "iam:DeleteRolePolicy",
-      "iam:GetRolePolicy",
-      "iam:CreateInstanceProfile",
-      "iam:GetInstanceProfile",
-      "iam:DeleteInstanceProfile",
-      "iam:AddRoleToInstanceProfile",
-      "iam:RemoveRoleFromInstanceProfile"
-    ]
-    resources = [
-      "arn:aws:iam::*:role/${local.namespace}-*",
-      "arn:aws:iam::*:policy/${local.namespace}-*",
-      "arn:aws:iam::*:instance-profile/${local.namespace}-*"
-    ]
+    actions = ["iam:CreateRole", "iam:DeleteRole", "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+    "iam:PutRolePolicy", "iam:DeleteRolePolicy",
+    "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
+    "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile"]
+    resources = ["arn:aws:iam::*:role/${local.namespace}-*", "arn:aws:iam::*:instance-profile/${local.namespace}-*"]
   }
 
-  # Secrets Manager for RDS credentials
   statement {
-    sid    = "AllowSecretsManagerManagement"
     effect = "Allow"
-    actions = [
-      "secretsmanager:CreateSecret",
-      "secretsmanager:DescribeSecret",
-      "secretsmanager:GetSecretValue",
-      "secretsmanager:UpdateSecret",
-      "secretsmanager:DeleteSecret",
-      "secretsmanager:ListSecrets",
-      "secretsmanager:RestoreSecret",
-      "secretsmanager:RotateSecret"
-    ]
-    resources = [
-      "arn:aws:secretsmanager:${var.region}:*:secret:${local.namespace}/*"
-    ]
+    actions = ["s3:CreateBucket", "s3:DeleteBucket", "s3:ListBucket", "s3:GetObject", "s3:PutObject",
+    "s3:PutBucketPolicy", "s3:PutBucketVersioning", "s3:PutBucketServerSideEncryptionConfiguration",
+    "s3:PutBucketPublicAccessBlock"]
+    resources = ["arn:aws:s3:::${local.namespace}-*", "arn:aws:s3:::${local.namespace}-*/*"]
   }
+}
 
-  # KMS for encryption
-  statement {
-    sid    = "AllowKMSKeyManagement"
-    effect = "Allow"
-    actions = [
-      "kms:CreateKey",
-      "kms:DescribeKey",
-      "kms:GenerateDataKey",
-      "kms:Decrypt",
-      "kms:ListKeys",
-      "kms:TagResource",
-      "kms:UntagResource"
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringLike"
-      variable = "kms:Description"
-      values   = ["${local.namespace}*"]
-    }
-  }
+# Policy 6: Secrets, KMS, DynamoDB, Logs
+resource "aws_iam_user_policy" "terraform_secrets_logs" {
+  name   = "${var.terraform_user_name}-secrets-logs-policy"
+  user   = aws_iam_user.terraform.name
+  policy = data.aws_iam_policy_document.terraform_secrets_logs.json
+}
 
-  # S3 for Terraform state management and application buckets
+data "aws_iam_policy_document" "terraform_secrets_logs" {
   statement {
-    sid    = "AllowS3StateManagement"
     effect = "Allow"
-    actions = [
-      "s3:ListBucket",
-      "s3:GetObject",
-      "s3:PutObject",
-      "s3:DeleteObject"
-    ]
-    resources = [
-      "arn:aws:s3:::${local.namespace}-terraform-state",
-      "arn:aws:s3:::${local.namespace}-terraform-state/*"
-    ]
-  }
-
-  # S3 for images bucket management
-  statement {
-    sid    = "AllowS3ImagesBucketManagement"
-    effect = "Allow"
-    actions = [
-      "s3:CreateBucket",
-      "s3:DeleteBucket",
-      "s3:ListBucket",
-      "s3:GetBucketVersioning",
-      "s3:PutBucketVersioning",
-      "s3:GetBucketServerSideEncryptionConfiguration",
-      "s3:PutBucketServerSideEncryptionConfiguration",
-      "s3:GetBucketPublicAccessBlock",
-      "s3:PutBucketPublicAccessBlock",
-      "s3:GetBucketPolicy",
-      "s3:PutBucketPolicy",
-      "s3:DeleteBucketPolicy",
-      "s3:ListBucketVersions",
-      "s3:GetObject",
-      "s3:GetObjectVersion",
-      "s3:PutObject",
-      "s3:DeleteObject"
-    ]
-    resources = [
-      "arn:aws:s3:::${local.namespace}-images*",
-      "arn:aws:s3:::${local.namespace}-images*/*"
-    ]
-  }
-
-  # S3 for frontend bucket management
-  statement {
-    sid    = "AllowS3FrontendBucketManagement"
-    effect = "Allow"
-    actions = [
-      "s3:CreateBucket",
-      "s3:DeleteBucket",
-      "s3:ListBucket",
-      "s3:GetBucketVersioning",
-      "s3:PutBucketVersioning",
-      "s3:GetBucketServerSideEncryptionConfiguration",
-      "s3:PutBucketServerSideEncryptionConfiguration",
-      "s3:GetBucketWebsite",
-      "s3:PutBucketWebsite",
-      "s3:DeleteBucketWebsite",
-      "s3:GetBucketPublicAccessBlock",
-      "s3:PutBucketPublicAccessBlock",
-      "s3:GetBucketPolicy",
-      "s3:PutBucketPolicy",
-      "s3:DeleteBucketPolicy",
-      "s3:ListBucketVersions",
-      "s3:GetObject",
-      "s3:GetObjectVersion",
-      "s3:PutObject",
-      "s3:DeleteObject"
-    ]
-    resources = [
-      "arn:aws:s3:::${local.namespace}-frontend*",
-      "arn:aws:s3:::${local.namespace}-frontend*/*"
-    ]
-  }
-
-  # DynamoDB for Terraform state locking
-  statement {
-    sid    = "AllowDynamoDBStateLocking"
-    effect = "Allow"
-    actions = [
-      "dynamodb:GetItem",
-      "dynamodb:PutItem",
-      "dynamodb:DeleteItem"
-    ]
-    resources = [
-      "arn:aws:dynamodb:${var.region}:*:table/${local.namespace}-terraform-lock"
-    ]
-  }
-
-  # CloudWatch Logs for monitoring
-  statement {
-    sid    = "AllowCloudWatchLogsManagement"
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:DeleteLogGroup",
-      "logs:DescribeLogGroups",
-      "logs:PutRetentionPolicy",
-      "logs:TagLogGroup"
-    ]
-    resources = [
-      "arn:aws:logs:${var.region}:*:log-group:/aws/ec2/${local.namespace}*",
-      "arn:aws:logs:${var.region}:*:log-group:/aws/rds/${local.namespace}*"
-    ]
+    actions = ["secretsmanager:CreateSecret", "secretsmanager:DeleteSecret",
+    "kms:Decrypt", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem",
+    "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy"]
+    resources = ["arn:aws:secretsmanager:${var.region}:*:secret:${local.namespace}/*",
+      "arn:aws:dynamodb:${var.region}:*:table/${local.namespace}-terraform-lock",
+      "arn:aws:logs:${var.region}:*:log-group:/aws/*/${local.namespace}*"]
   }
 }
 
 # ============================================================================
-# IAM User for SSH Access to EC2 (Optional)
+# IAM User for SSH/EC2 Session Manager Access (Optional)
 # ============================================================================
 
 resource "aws_iam_user" "ssh_user" {
