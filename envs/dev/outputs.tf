@@ -269,6 +269,7 @@ output "wordpress_setup_instructions" {
     try(module.rds[0].db_instance_endpoint, "pending"), var.wordpress_database_name,
     module.ec2.public_ip
   )
+  sensitive = true
 }
 
 

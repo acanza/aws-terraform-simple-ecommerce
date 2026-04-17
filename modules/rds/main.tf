@@ -31,7 +31,7 @@ resource "aws_db_subnet_group" "main" {
 # specified security groups and blocks all outbound
 
 resource "aws_security_group" "rds" {
-  name        = "${var.project_name}-${var.environment}-rds-sg"
+  name_prefix = "${var.project_name}-${var.environment}-rds-"
   description = "Security group for RDS PostgreSQL instance in private subnet"
   vpc_id      = var.vpc_id
 
@@ -137,7 +137,7 @@ resource "aws_db_instance" "main" {
   performance_insights_enabled          = var.enable_performance_insights
   performance_insights_retention_period = var.enable_performance_insights ? 7 : null
   enabled_cloudwatch_logs_exports       = ["postgresql"]
-  monitoring_interval                   = var.monitoring_interval
+  monitoring_interval                   = var.enable_enhanced_monitoring ? (var.monitoring_interval > 0 ? var.monitoring_interval : 60) : 0
   monitoring_role_arn                   = var.enable_enhanced_monitoring ? aws_iam_role.rds_monitoring[0].arn : null
 
   # Deletion protection
