@@ -32,6 +32,7 @@ yum install -y \
     php-xmlrpc \
     php-zip \
     php-pdo \
+    php-pgsql \
     postgresql
 
 # Start PHP-FPM and Nginx services
