@@ -64,6 +64,9 @@ module "ec2" {
   # IAM instance profile for secure credential management
   iam_instance_profile = module.iam.ec2_instance_profile_name
 
+  # SSH key pair for EC2 access
+  key_name = var.ec2_key_name
+
   # WordPress initialization script
   user_data = local.wordpress_user_data
 

@@ -51,6 +51,24 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_https" {
   )
 }
 
+# Conditional: Inbound SSH from trusted CIDR (if enabled)
+resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
+  count             = var.trusted_ssh_cidr != null ? 1 : 0
+  description       = "SSH from trusted CIDR"
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+  cidr_ipv4         = var.trusted_ssh_cidr
+  security_group_id = aws_security_group.ec2.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-ec2-ssh"
+    }
+  )
+}
+
 # ============================================================
 # OUTBOUND (EGRESS) RULES - Restrict to necessary services
 # ============================================================

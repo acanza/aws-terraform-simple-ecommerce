@@ -93,6 +93,12 @@ variable "user_data" {
   default     = ""
 }
 
+variable "key_name" {
+  description = "EC2 Key Pair name for SSH access (optional)"
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   description = "Additional tags to apply to resources"
   type        = map(string)

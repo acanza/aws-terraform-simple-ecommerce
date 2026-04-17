@@ -91,3 +91,9 @@ variable "wordpress_db_host" {
   type        = string
   default     = "" # Will be overridden after RDS is created
 }
+
+variable "ec2_key_name" {
+  description = "SSH key pair name for EC2 access (optional)"
+  type        = string
+  default     = null
+}

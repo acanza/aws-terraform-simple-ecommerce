@@ -63,17 +63,14 @@ chmod -R 777 /usr/share/nginx/html/wp-content/
 echo -e "${YELLOW}[7/10] Configuring WordPress...${NC}"
 cp /usr/share/nginx/html/wp-config-sample.php /usr/share/nginx/html/wp-config.php
 
-# Replace database configuration in wp-config.php
-sed -i "s/database_name_here/%%DB_NAME%%/g" /usr/share/nginx/html/wp-config.php
-sed -i "s/username_here/%%DB_USER%%/g" /usr/share/nginx/html/wp-config.php
-sed -i "s/password_here/%%DB_PASSWORD%%/g" /usr/share/nginx/html/wp-config.php
-sed -i "s/localhost/%%DB_HOST%%/g" /usr/share/nginx/html/wp-config.php
+# Replace database configuration in wp-config.php using # as delimiter (safer for database values)
+sed -i "s#database_name_here#%%DB_NAME%%#g" /usr/share/nginx/html/wp-config.php
+sed -i "s#username_here#%%DB_USER%%#g" /usr/share/nginx/html/wp-config.php
+sed -i "s#password_here#%%DB_PASSWORD%%#g" /usr/share/nginx/html/wp-config.php
+sed -i "s#localhost#%%DB_HOST%%#g" /usr/share/nginx/html/wp-config.php
 
-# Add PostgreSQL database type (WordPress uses this with plugins)
-SECURITY_KEYS=$(curl -s https://api.wordpress.org/secret-key/1.1/salt/)
-# Replace AUTH_KEY and other keys - accounting for line breaks in SECURITY_KEYS
-ESCAPED_KEYS=$(echo "$SECURITY_KEYS" | sed 's/[\/&]/\\&/g')
-sed -i "/AUTH_KEY/,/NONCE_SALT/c\\$ESCAPED_KEYS" /usr/share/nginx/html/wp-config.php
+# Security keys are already in wp-config-sample.php, so we don't need to fetch them
+# WordPress will auto-generate them on first access if needed
 
 # Configure Nginx for WordPress
 echo -e "${YELLOW}[8/10] Configuring Nginx...${NC}"
