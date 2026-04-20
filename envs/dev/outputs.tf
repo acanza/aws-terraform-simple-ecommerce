@@ -214,4 +214,63 @@ output "frontend_url" {
   value       = module.s3_frontend.frontend_url
 }
 
+# ============================================================
+# WordPress Configuration
+# ============================================================
+
+output "wordpress_site_url" {
+  description = "WordPress site URL (access from browser)"
+  value       = "http://${module.ec2.public_ip}"
+}
+
+output "wordpress_admin_url" {
+  description = "WordPress admin login URL"
+  value       = "http://${module.ec2.public_ip}/wp-admin"
+}
+
+output "wordpress_admin_user" {
+  description = "WordPress administrator username"
+  value       = var.wordpress_admin_user
+}
+
+output "wordpress_database_name" {
+  description = "PostgreSQL database name for WordPress"
+  value       = var.wordpress_database_name
+}
+
+output "wordpress_db_endpoint" {
+  description = "RDS PostgreSQL endpoint for WordPress database connection"
+  value       = try(module.rds[0].db_instance_endpoint, "NOT CREATED - enable_rds must be true")
+  sensitive   = true
+}
+
+output "wordpress_setup_instructions" {
+  description = "Instructions to complete WordPress setup"
+  value = format(<<-EOT
+    WordPress Setup Instructions:
+    
+    1. Access WordPress at: http://%s
+    2. Complete the installation wizard
+    3. Admin URL: http://%s/wp-admin
+    4. Admin User: %s
+    
+    Database Connection Details (if needed):
+    - Host: %s
+    - Database: %s
+    - User: postgres
+    - Port: 5432
+    
+    Notes:
+    - After installation, configure SSL/HTTPS with certbot
+    - Run: ssh ec2-user@%s 'sudo certbot --nginx -d your-domain.com'
+    - Update wordpress_db_host variable with actual RDS endpoint after creation
+    EOT
+    , module.ec2.public_ip, module.ec2.public_ip, var.wordpress_admin_user,
+    try(module.rds[0].db_instance_endpoint, "pending"), var.wordpress_database_name,
+    module.ec2.public_ip
+  )
+  sensitive = true
+}
+
+
 

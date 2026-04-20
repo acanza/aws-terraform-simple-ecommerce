@@ -26,6 +26,7 @@ resource "aws_instance" "main" {
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [var.security_group_id]
   iam_instance_profile   = var.iam_instance_profile
+  key_name               = var.key_name
 
   # Cost optimization settings
   associate_public_ip_address = var.associate_public_ip
@@ -48,6 +49,8 @@ resource "aws_instance" "main" {
     http_tokens                 = "required"
     http_put_response_hop_limit = 1
   }
+
+  user_data = var.user_data
 
   tags = merge(
     {
