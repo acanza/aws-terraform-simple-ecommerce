@@ -266,8 +266,8 @@ output "medusa_setup_instructions" {
     - Update medusa_db_host variable with actual RDS endpoint after creation
     EOT
     , module.ec2.public_ip, module.ec2.public_ip, var.medusa_admin_user,
-    try(module.rds[0].db_instance_endpoint, "pending"), var.medusa_database_name,
-    module.ec2.public_ip
+    module.ec2.public_ip, try(module.rds[0].db_instance_endpoint, "pending"),
+    var.medusa_database_name, module.ec2.public_ip
   )
   sensitive = true
 }

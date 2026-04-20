@@ -35,7 +35,7 @@ output "cloudfront_distribution_id" {
 
 output "images_url" {
   description = "URL para acceder a las imágenes (CloudFront o S3)"
-  value       = var.enable_cloudfront ? "https://${aws_cloudfront_distribution.images[0].domain_name}" : "s3://${aws_s3_bucket.images.id}"
+  value       = var.enable_cloudfront ? "https://${try(aws_cloudfront_distribution.images[0].domain_name, "")}" : "s3://${aws_s3_bucket.images.id}"
 }
 
 # ============================================================
