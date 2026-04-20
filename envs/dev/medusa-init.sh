@@ -18,9 +18,6 @@ echo -e "${YELLOW}Starting Medusa Commerce installation...${NC}"
 echo -e "${YELLOW}[1/9] Updating system packages and installing dependencies...${NC}"
 yum update -y
 yum install -y \
-    nodejs \
-    npm \
-    nginx \
     postgresql \
     git \
     curl \
@@ -30,11 +27,20 @@ yum install -y \
     gcc \
     gcc-c++
 
-# Install Node.js 18 LTS (Medusa requires Node 18+)
-echo -e "${YELLOW}[2/9] Installing Node.js 18 LTS...${NC}"
-npm install -g n
-n 18.17.0
-hash -r
+# ============================================================
+# 2. Install Node.js 18 via NodeSource (ARM64 compatible)
+# ============================================================
+# Note: Amazon Linux 2 base repos do not include nodejs.
+# NodeSource provides official ARM64 binaries for Node 18.
+echo -e "${YELLOW}[2/9] Installing Node.js 18 LTS via NodeSource...${NC}"
+curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+yum install -y nodejs
+node --version
+npm --version
+
+# Install Nginx via amazon-linux-extras (required on Amazon Linux 2)
+echo -e "${YELLOW}[2b/9] Installing Nginx via amazon-linux-extras...${NC}"
+amazon-linux-extras install nginx1 -y
 
 # Install yarn globally (Medusa uses yarn by default)
 npm install -g yarn
