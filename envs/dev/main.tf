@@ -47,14 +47,14 @@ module "iam" {
   }
 }
 
-# EC2 Instance - WordPress web server
+# EC2 Instance - Medusa Commerce backend server
 module "ec2" {
   source = "../../modules/ec2"
 
   region        = var.region
   environment   = "dev"
   project_name  = "ecommerce"
-  instance_name = "wordpress-server"
+  instance_name = "medusa-server"
   instance_type = "t4g.micro" # Free tier eligible, ARM-based
 
   # Deploy to public subnet 1 for internet accessibility
@@ -67,8 +67,8 @@ module "ec2" {
   # SSH key pair for EC2 access
   key_name = var.ec2_key_name
 
-  # WordPress initialization script
-  user_data = local.wordpress_user_data
+  # Medusa initialization script
+  user_data = local.medusa_user_data
 
   # Cost optimization defaults
   root_volume_size        = 20 # Increased for WordPress

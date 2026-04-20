@@ -150,8 +150,8 @@ data "aws_iam_policy_document" "terraform_vpc" {
   statement {
     effect = "Allow"
     actions = ["ec2:CreateVpc", "ec2:DescribeVpcs", "ec2:DeleteVpc",
-    "ec2:CreateSubnet", "ec2:DescribeSubnets", "ec2:DeleteSubnet",
-    "ec2:CreateRouteTable", "ec2:DescribeRouteTables", "ec2:DeleteRouteTable",
+      "ec2:CreateSubnet", "ec2:DescribeSubnets", "ec2:DeleteSubnet",
+      "ec2:CreateRouteTable", "ec2:DescribeRouteTables", "ec2:DeleteRouteTable",
     "ec2:CreateRoute", "ec2:DeleteRoute"]
     resources = ["*"]
   }
@@ -168,9 +168,9 @@ data "aws_iam_policy_document" "terraform_network" {
   statement {
     effect = "Allow"
     actions = ["ec2:CreateInternetGateway", "ec2:DescribeInternetGateways", "ec2:DeleteInternetGateway",
-    "ec2:AttachInternetGateway", "ec2:DetachInternetGateway",
-    "ec2:AssociateRouteTable", "ec2:DisassociateRouteTable",
-    "ec2:CreateNatGateway", "ec2:DescribeNatGateways", "ec2:DeleteNatGateway",
+      "ec2:AttachInternetGateway", "ec2:DetachInternetGateway",
+      "ec2:AssociateRouteTable", "ec2:DisassociateRouteTable",
+      "ec2:CreateNatGateway", "ec2:DescribeNatGateways", "ec2:DeleteNatGateway",
     "ec2:AllocateAddress", "ec2:ReleaseAddress"]
     resources = ["*"]
   }
@@ -187,7 +187,7 @@ data "aws_iam_policy_document" "terraform_sg" {
   statement {
     effect = "Allow"
     actions = ["ec2:CreateSecurityGroup", "ec2:DescribeSecurityGroups", "ec2:DeleteSecurityGroup",
-    "ec2:AuthorizeSecurityGroupIngress", "ec2:RevokeSecurityGroupIngress",
+      "ec2:AuthorizeSecurityGroupIngress", "ec2:RevokeSecurityGroupIngress",
     "ec2:AuthorizeSecurityGroupEgress", "ec2:RevokeSecurityGroupEgress"]
     resources = ["*"]
   }
@@ -204,8 +204,8 @@ data "aws_iam_policy_document" "terraform_compute_db" {
   statement {
     effect = "Allow"
     actions = ["ec2:RunInstances", "ec2:TerminateInstances", "ec2:DescribeInstances", "ec2:DescribeImages",
-    "ec2:CreateTags", "ec2:DeleteTags",
-    "rds:CreateDBInstance", "rds:DeleteDBInstance", "rds:DescribeDBInstances",
+      "ec2:CreateTags", "ec2:DeleteTags",
+      "rds:CreateDBInstance", "rds:DeleteDBInstance", "rds:DescribeDBInstances",
     "rds:CreateDBSubnetGroup", "rds:DescribeDBSubnetGroups", "rds:DeleteDBSubnetGroup"]
     resources = ["*"]
   }
@@ -222,8 +222,8 @@ data "aws_iam_policy_document" "terraform_iam_s3" {
   statement {
     effect = "Allow"
     actions = ["iam:CreateRole", "iam:DeleteRole", "iam:AttachRolePolicy", "iam:DetachRolePolicy",
-    "iam:PutRolePolicy", "iam:DeleteRolePolicy",
-    "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
+      "iam:PutRolePolicy", "iam:DeleteRolePolicy",
+      "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
     "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile"]
     resources = ["arn:aws:iam::*:role/${local.namespace}-*", "arn:aws:iam::*:instance-profile/${local.namespace}-*"]
   }
@@ -231,7 +231,7 @@ data "aws_iam_policy_document" "terraform_iam_s3" {
   statement {
     effect = "Allow"
     actions = ["s3:CreateBucket", "s3:DeleteBucket", "s3:ListBucket", "s3:GetObject", "s3:PutObject",
-    "s3:PutBucketPolicy", "s3:PutBucketVersioning", "s3:PutBucketServerSideEncryptionConfiguration",
+      "s3:PutBucketPolicy", "s3:PutBucketVersioning", "s3:PutBucketServerSideEncryptionConfiguration",
     "s3:PutBucketPublicAccessBlock"]
     resources = ["arn:aws:s3:::${local.namespace}-*", "arn:aws:s3:::${local.namespace}-*/*"]
   }
@@ -248,11 +248,11 @@ data "aws_iam_policy_document" "terraform_secrets_logs" {
   statement {
     effect = "Allow"
     actions = ["secretsmanager:CreateSecret", "secretsmanager:DeleteSecret",
-    "kms:Decrypt", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem",
+      "kms:Decrypt", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem",
     "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy"]
     resources = ["arn:aws:secretsmanager:${var.region}:*:secret:${local.namespace}/*",
       "arn:aws:dynamodb:${var.region}:*:table/${local.namespace}-terraform-lock",
-      "arn:aws:logs:${var.region}:*:log-group:/aws/*/${local.namespace}*"]
+    "arn:aws:logs:${var.region}:*:log-group:/aws/*/${local.namespace}*"]
   }
 }
 
