@@ -215,17 +215,17 @@ output "frontend_url" {
 }
 
 # ============================================================
-# WordPress Configuration
+# Medusa Commerce Configuration
 # ============================================================
 
-output "wordpress_site_url" {
-  description = "WordPress site URL (access from browser)"
+output "medusa_api_url" {
+  description = "Medusa Commerce API URL (access from frontend)"
   value       = "http://${module.ec2.public_ip}"
 }
 
-output "wordpress_admin_url" {
-  description = "WordPress admin login URL"
-  value       = "http://${module.ec2.public_ip}/wp-admin"
+output "medusa_admin_dashboard_url" {
+  description = "Medusa Commerce admin dashboard URL"
+  value       = "http://${module.ec2.public_ip}/admin"
 }
 
 output "medusa_admin_email" {
