@@ -31,6 +31,7 @@ resource "aws_db_subnet_group" "main" {
 # specified security groups and blocks all outbound
 
 resource "aws_security_group" "rds" {
+  count       = var.rds_security_group_id == null ? 1 : 0
   name_prefix = "${var.project_name}-${var.environment}-rds-"
   description = "Security group for RDS PostgreSQL instance in private subnet"
   vpc_id      = var.vpc_id
@@ -50,14 +51,19 @@ resource "aws_security_group" "rds" {
   }
 }
 
+locals {
+  # Use external SG if provided, otherwise use the internally created one
+  rds_sg_id = var.rds_security_group_id != null ? var.rds_security_group_id : aws_security_group.rds[0].id
+}
+
 # Allow inbound PostgreSQL traffic from specified security groups
 resource "aws_security_group_rule" "rds_inbound" {
-  count             = length(var.allowed_security_group_ids) > 0 ? 1 : 0
+  count             = var.rds_security_group_id == null && length(var.allowed_security_group_ids) > 0 ? 1 : 0
   type              = "ingress"
   from_port         = 5432
   to_port           = 5432
   protocol          = "tcp"
-  security_group_id = aws_security_group.rds.id
+  security_group_id = local.rds_sg_id
 
   source_security_group_id = var.allowed_security_group_ids[0]
 
@@ -68,12 +74,12 @@ resource "aws_security_group_rule" "rds_inbound" {
 
 # Allow additional inbound rules for each additional security group
 resource "aws_security_group_rule" "rds_inbound_additional" {
-  count             = length(var.allowed_security_group_ids) > 1 ? length(var.allowed_security_group_ids) - 1 : 0
+  count             = var.rds_security_group_id == null && length(var.allowed_security_group_ids) > 1 ? length(var.allowed_security_group_ids) - 1 : 0
   type              = "ingress"
   from_port         = 5432
   to_port           = 5432
   protocol          = "tcp"
-  security_group_id = aws_security_group.rds.id
+  security_group_id = local.rds_sg_id
 
   source_security_group_id = var.allowed_security_group_ids[count.index + 1]
 
@@ -84,12 +90,13 @@ resource "aws_security_group_rule" "rds_inbound_additional" {
 
 # Allow RDS to communicate outbound (minimal necessary)
 resource "aws_security_group_rule" "rds_outbound" {
+  count             = var.rds_security_group_id == null ? 1 : 0
   type              = "egress"
   from_port         = 0
   to_port           = 65535
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.rds.id
+  security_group_id = local.rds_sg_id
 
   lifecycle {
     create_before_destroy = true
@@ -114,7 +121,7 @@ resource "aws_db_instance" "main" {
   # Network configuration - must be in private subnets
   db_subnet_group_name   = aws_db_subnet_group.main.name
   publicly_accessible    = false
-  vpc_security_group_ids = [aws_security_group.rds.id]
+  vpc_security_group_ids = [local.rds_sg_id]
   skip_final_snapshot    = var.skip_final_snapshot
 
   # Backup configuration

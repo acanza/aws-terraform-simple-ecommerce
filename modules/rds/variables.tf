@@ -87,9 +87,15 @@ variable "private_subnet_ids" {
 }
 
 variable "allowed_security_group_ids" {
-  description = "Security group IDs that can access the RDS instance"
+  description = "Security group IDs that can access the RDS instance (used only when rds_security_group_id is not provided)"
   type        = list(string)
   default     = []
+}
+
+variable "rds_security_group_id" {
+  description = "External security group ID to use for RDS. If provided, skips creating an internal SG and its rules."
+  type        = string
+  default     = null
 }
 
 variable "database_name" {

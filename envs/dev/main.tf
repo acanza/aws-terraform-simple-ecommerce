@@ -106,6 +106,10 @@ module "rds" {
   # Allow EC2 instance to connect to RDS
   allowed_security_group_ids = [module.security_groups.ec2_security_group_id]
 
+  # Use the RDS security group from the security_groups module
+  # This ensures EC2 egress rules reference the same SG that RDS uses
+  rds_security_group_id = module.security_groups.rds_security_group_id
+
   # Development settings
   multi_az                           = false
   backup_retention_period            = 7
@@ -122,8 +126,7 @@ module "rds" {
 
   depends_on = [
     module.vpc,
-    module.security_groups,
-    module.ec2
+    module.security_groups
   ]
 }
 

@@ -1,7 +1,8 @@
 # Local values for WordPress configuration
 locals {
   # Determine RDS endpoint
-  db_host = var.wordpress_db_host != "" ? var.wordpress_db_host : "ecommerce-dev-postgres.${var.region}.rds.amazonaws.com"
+  # Use the actual RDS module output (EC2 will be created after RDS)
+  db_host = var.wordpress_db_host != "" ? var.wordpress_db_host : module.rds[0].db_instance_address
 
   # WordPress user data script - read and replace placeholders
   # We use a simple replacement approach instead of templatefile to avoid conflicts with bash variables
