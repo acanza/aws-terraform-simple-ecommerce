@@ -101,7 +101,7 @@ module "rds" {
   # Database credentials (use Secrets Manager in production)
   database_username = "postgres"
   database_password = var.rds_master_password
-  database_name     = var.wordpress_database_name
+  database_name     = var.medusa_database_name
 
   # Allow EC2 instance to connect to RDS
   allowed_security_group_ids = [module.security_groups.ec2_security_group_id]
