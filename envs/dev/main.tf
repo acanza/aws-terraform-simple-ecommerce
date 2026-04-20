@@ -113,7 +113,7 @@ module "rds" {
   # Development settings
   multi_az                           = false
   backup_retention_period            = 7
-  skip_final_snapshot                = false
+  skip_final_snapshot                = true  # Dev environment: faster cleanup, no snapshot needed
   enable_deletion_protection         = false # Easier cleanup in dev
   enable_storage_encryption          = true
   enable_iam_database_authentication = false # Simplified auth for dev
