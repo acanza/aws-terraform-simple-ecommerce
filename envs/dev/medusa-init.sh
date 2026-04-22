@@ -57,9 +57,12 @@ cd /opt/medusa
 # 4. Initialize Medusa project
 # ============================================================
 echo -e "${YELLOW}[4/9] Initializing Medusa project...${NC}"
-# create-medusa-app v2: project name is a positional arg; --no-browser avoids
-# opening a browser; --skip-db skips local DB setup (we use RDS)
-npx create-medusa-app@latest medusa-store --no-browser --skip-db --db-url "postgresql://%%DB_USER%%:%%DB_PASSWORD%%@%%DB_HOST%%:5432/%%DB_NAME%%"
+# create-medusa-app v2 flags (from official docs):
+#   --skip-db: skips DB creation, migrations, and seeding (we configure RDS manually below)
+#   --no-browser: prevents opening a browser at the end
+#   --use-npm: avoids yarn/pnpm conflicts in this environment
+# 'yes n' continuously pipes "n" to answer any interactive prompts (e.g. Next.js storefront)
+yes n | npx create-medusa-app@latest medusa-store --skip-db --no-browser --use-npm
 
 cd medusa-store
 
