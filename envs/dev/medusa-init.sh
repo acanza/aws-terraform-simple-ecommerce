@@ -16,9 +16,10 @@ echo -e "${YELLOW}Starting Medusa Commerce installation...${NC}"
 # 1. Update system packages and install prerequisites
 # ============================================================
 echo -e "${YELLOW}[1/9] Updating system packages and installing dependencies...${NC}"
-yum update -y
-yum install -y \
-    postgresql \
+# AL2023 uses dnf; amazon-linux-extras is not available
+dnf update -y
+dnf install -y \
+    postgresql15 \
     git \
     curl \
     wget \
@@ -28,19 +29,18 @@ yum install -y \
     gcc-c++
 
 # ============================================================
-# 2. Install Node.js 18 via NodeSource (ARM64 compatible)
+# 2. Install Node.js 18 via NodeSource (AL2023 + glibc 2.34 compatible)
 # ============================================================
-# Note: Amazon Linux 2 base repos do not include nodejs.
-# NodeSource provides official ARM64 binaries for Node 18.
+# AL2023 ships with glibc 2.34; NodeSource Node 18 ARM64 binaries are compatible.
 echo -e "${YELLOW}[2/9] Installing Node.js 18 LTS via NodeSource...${NC}"
 curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-yum install -y nodejs
+dnf install -y nodejs
 node --version
 npm --version
 
-# Install Nginx via amazon-linux-extras (required on Amazon Linux 2)
-echo -e "${YELLOW}[2b/9] Installing Nginx via amazon-linux-extras...${NC}"
-amazon-linux-extras install nginx1 -y
+# Install Nginx (available directly in AL2023 base repos)
+echo -e "${YELLOW}[2b/9] Installing Nginx...${NC}"
+dnf install -y nginx
 
 # Install yarn globally (Medusa uses yarn by default)
 npm install -g yarn
@@ -239,7 +239,7 @@ systemctl start medusa.service
 
 # Install Certbot for Let's Encrypt SSL (optional)
 echo -e "${YELLOW}Installing Certbot for SSL support...${NC}"
-yum install -y certbot python3-certbot-nginx
+dnf install -y certbot python3-certbot-nginx
 
 # Get EC2 public IP
 INSTANCE_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)

@@ -71,7 +71,7 @@ module "ec2" {
   user_data = local.medusa_user_data
 
   # Cost optimization defaults
-  root_volume_size        = 20 # Increased for Medusa application
+  root_volume_size        = 30 # AL2023 AMI requires minimum 30 GB
   root_volume_type        = "gp3"
   enable_ebs_optimization = false
   monitoring_enabled      = false
