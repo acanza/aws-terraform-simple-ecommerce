@@ -30,11 +30,11 @@ dnf install -y --allowerasing \
     gcc-c++
 
 # ============================================================
-# 2. Install Node.js 18 via NodeSource (AL2023 + glibc 2.34 compatible)
+# 2. Install Node.js 20 via NodeSource (Medusa v2 requires Node >= 20)
 # ============================================================
-# AL2023 ships with glibc 2.34; NodeSource Node 18 ARM64 binaries are compatible.
-echo -e "${YELLOW}[2/9] Installing Node.js 18 LTS via NodeSource...${NC}"
-curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+# AL2023 ships with glibc 2.34; NodeSource Node 20 ARM64 binaries are compatible.
+echo -e "${YELLOW}[2/9] Installing Node.js 20 LTS via NodeSource...${NC}"
+curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
 dnf install -y nodejs
 node --version
 npm --version
@@ -57,11 +57,9 @@ cd /opt/medusa
 # 4. Initialize Medusa project
 # ============================================================
 echo -e "${YELLOW}[4/9] Initializing Medusa project...${NC}"
-# Use npx to create Medusa starter without global installation issues
-npx create-medusa-app@latest \
-  --repo=https://github.com/medusajs/medusa-starter-default \
-  --project-name medusa-store \
-  --skip-db
+# create-medusa-app v2: project name is a positional arg; --no-browser avoids
+# opening a browser; --skip-db skips local DB setup (we use RDS)
+npx create-medusa-app@latest medusa-store --no-browser --skip-db --db-url "postgresql://%%DB_USER%%:%%DB_PASSWORD%%@%%DB_HOST%%:5432/%%DB_NAME%%"
 
 cd medusa-store
 
