@@ -17,8 +17,9 @@ echo -e "${YELLOW}Starting Medusa Commerce installation...${NC}"
 # ============================================================
 echo -e "${YELLOW}[1/9] Updating system packages and installing dependencies...${NC}"
 # AL2023 uses dnf; amazon-linux-extras is not available
+# --allowerasing replaces curl-minimal (pre-installed in AL2023) with full curl
 dnf update -y
-dnf install -y \
+dnf install -y --allowerasing \
     postgresql15 \
     git \
     curl \
