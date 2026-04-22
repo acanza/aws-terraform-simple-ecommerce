@@ -43,6 +43,15 @@ npm --version
 echo -e "${YELLOW}[2b/9] Installing Nginx...${NC}"
 dnf install -y nginx
 
+# Create swap file to prevent OOM during npm install (t4g.micro has only 1 GB RAM)
+# Medusa's npm install requires ~1.5 GB; swap ensures it completes successfully
+echo -e "${YELLOW}[2c/9] Creating 2 GB swap file for npm install...${NC}"
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
 # Install yarn globally (Medusa uses yarn by default)
 npm install -g yarn
 
