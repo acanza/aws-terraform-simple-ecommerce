@@ -24,12 +24,12 @@ variable "instance_name" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type (use t4g.micro for cost optimization and ARM support, or t3.micro for x86)"
+  description = "EC2 instance type (use t4g.micro or t4g.small for cost optimization and ARM support, or t3.micro or t3.small for x86)"
   type        = string
   default     = "t4g.micro"
   validation {
-    condition     = can(regex("^t[34]g?\\.micro$", var.instance_type))
-    error_message = "Instance type should be t3.micro, t4g.micro for cost optimization (free tier eligible)."
+    condition     = can(regex("^t[34]g?\\.(micro|small)$", var.instance_type))
+    error_message = "Instance type should be t3.micro, t3.small, t4g.micro, or t4g.small (required for Medusa npm install)."
   }
 }
 

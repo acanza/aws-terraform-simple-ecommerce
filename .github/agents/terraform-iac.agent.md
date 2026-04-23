@@ -61,6 +61,99 @@ When creating IAM policies:
 4. **Never compress readability for size**: Readability trumps space-saving obfuscation
 5. **Provide migration path**: If splitting an existing policy, show the before/after and state safety plan
 
+## Resource Replacement & Safe Tainting
+
+**⚠️ `terraform taint` is DEPRECATED** ([Official HashiCorp Recommendation](https://developer.hashicorp.com/terraform/cli/commands/taint))
+
+### Recommended: Use `-replace` Instead
+
+When you need to force Terraform to replace a resource, use the `-replace` option with `terraform plan` and `terraform apply`:
+
+```bash
+# Generate and review plan with replacement
+terraform plan -replace="aws_instance.example" -out=tfplan
+
+# If the plan looks correct, apply it
+terraform apply tfplan
+```
+
+**Why `-replace` is safer than `terraform taint`**:
+
+1. **Visible in plan**: Changes are shown before any external action takes place
+2. **Team coordination**: Other team members can review the replacement decision
+3. **No surprise replacements**: Prevents other users from unknowingly applying a tainted resource before you've reviewed it
+4. **Cleaner state**: No residual "tainted" marks left in state after replacement
+5. **Audit trail**: The `-replace` argument is visible in logs and automation records
+
+### When to Force Replacement
+
+Use `-replace` when:
+- A resource became degraded or damaged in production
+- You need to apply security patches that require recreation (certificate, key rotation)
+- A managed resource drifted and needs resync
+- Testing or troubleshooting requires a fresh resource lifecycle
+
+### Safe Replacement Workflow
+
+```bash
+# Step 1: Generate plan with replacement for specific resource
+terraform plan -replace="aws_rds_instance.database" -out=tfplan
+
+# Step 2: Review the plan output carefully
+#   Look for:
+#   - What will be destroyed
+#   - What will be created
+#   - Any dependent resources that may be affected
+#   - Data loss considerations (snapshots, backups)
+
+# Step 3: If safe, apply the plan
+terraform apply tfplan
+
+# Step 4: Verify the replacement completed successfully
+terraform state list | grep "resource_type"
+```
+
+### Resource Addressing for `-replace`
+
+Valid address formats:
+- Simple: `aws_instance.web`
+- Indexed: `aws_instance.web[0]` or `aws_instance.web["prod"]`
+- Nested in module: `module.vpc.aws_subnet.private[1]`
+- Multiple: Use multiple `-replace` flags: `terraform apply -replace=aws_instance.web -replace=aws_security_group.app`
+
+### State Management During Replacement
+
+- **Before replacement**: Create a backup of state file (handled by Terraform if remote backend is configured)
+- **Data loss risk**: Assess if replacement will lose data (RDS databases, S3 buckets, EBS volumes)
+  - For critical data: Take snapshots/backups first
+  - Consider `lifecycle { create_before_destroy }` for zero-downtime replacement
+- **After replacement**: Verify application connectivity and data integrity
+
+### Scripting Replacements
+
+For automation or CI/CD pipelines:
+
+```bash
+#!/bin/bash
+# Replace multiple resources with review gate
+
+RESOURCES=(
+  "aws_rds_instance.main"
+  "aws_elasticache_cluster.cache"
+)
+
+for resource in "${RESOURCES[@]}"; do
+  echo "Planning replacement for: $resource"
+  terraform plan -replace="$resource" -out=tfplan_$resource
+  
+  # In CI/CD, capture and send plan for approval
+  # In manual operation, user reviews before applying
+  
+  terraform apply tfplan_$resource
+  rm tfplan_$resource
+done
+```
+
 ## Working Patterns
 
 When scaffolding new modules or resources:
@@ -119,7 +212,10 @@ When creating modules:
 ## Tool Usage
 
 - **File operations**: Create, read, modify Terraform files
-- **Terminal**: Run terraform commands (init, plan, apply, validate, fmt)
+- **Terminal**: Run terraform commands (`init`, `plan`, `apply`, `validate`, `fmt`)
+  - **Resource replacement**: Use `terraform plan -replace="resource.address"` + `terraform apply` (not deprecated `terraform taint`)
+  - **Planning**: Always generate plan first: `terraform plan -out=tfplan`
+  - **Applying**: Review plan output before `terraform apply tfplan`
 - **Search**: Find existing code patterns and reuse
 - **Documentation**: Generate comprehensive guides and examples
 
@@ -131,5 +227,7 @@ When creating modules:
 ✅ Refactoring existing Terraform code  
 ✅ Debugging deployment issues  
 ✅ Generating documentation and examples  
+✅ Forcing resource replacement (using safe `-replace` workflow)  
+✅ Recovering degraded or damaged resources  
 
 ❌ This agent is not for: CI/CD pipeline setup, AWS console operations, or non-IaC tasks

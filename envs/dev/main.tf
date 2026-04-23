@@ -55,7 +55,7 @@ module "ec2" {
   environment   = "dev"
   project_name  = "ecommerce"
   instance_name = "medusa-server"
-  instance_type = "t4g.micro" # Free tier eligible, ARM-based
+  instance_type = "t4g.small" # 2 GB RAM required for Medusa npm install
 
   # Deploy to public subnet 1 for internet accessibility
   subnet_id         = module.vpc.public_subnet_1_id
