@@ -71,6 +71,8 @@ echo -e "${YELLOW}[4/9] Initializing Medusa project...${NC}"
 #   --no-browser: prevents opening a browser at the end
 #   --use-npm: avoids yarn/pnpm conflicts in this environment
 # 'yes n' continuously pipes "n" to answer any interactive prompts (e.g. Next.js storefront)
+# NODE_OPTIONS increases V8 heap limit beyond default ~512MB to use available RAM + swap
+export NODE_OPTIONS="--max-old-space-size=1536"
 yes n | npx create-medusa-app@latest medusa-store --skip-db --no-browser --use-npm
 
 cd medusa-store
