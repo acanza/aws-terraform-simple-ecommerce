@@ -75,7 +75,8 @@ echo -e "${YELLOW}[4/9] Initializing Medusa project...${NC}"
 export NODE_OPTIONS="--max-old-space-size=3072"
 yes n | npx create-medusa-app@latest medusa-store --skip-db --no-browser --use-npm
 
-cd medusa-store
+# create-medusa-app creates a monorepo; the actual Medusa backend is in apps/backend
+cd medusa-store/apps/backend
 
 # ============================================================
 # 5. Configure environment variables for PostgreSQL
@@ -139,12 +140,13 @@ PGPASSWORD="%%DB_PASSWORD%%" psql -h %%DB_HOST%% -U %%DB_USER%% -d postgres -c \
 
 # Install deps in .medusa/server and run migrations (predeploy = medusa db:migrate)
 echo -e "${YELLOW}Installing production dependencies and running migrations...${NC}"
-cd /opt/medusa/medusa-store/.medusa/server
-npm install
+cd /opt/medusa/medusa-store/apps/backend/.medusa/server
+# --legacy-peer-deps: Medusa v2 has react@19 peer dep conflicts with @medusajs/icons on npm v10+
+npm install --legacy-peer-deps
 # Copy env file so systemd EnvironmentFile and predeploy script can read it
-cp /opt/medusa/medusa-store/.env.production .env
+cp /opt/medusa/medusa-store/apps/backend/.env.production .env
 npm run predeploy
-cd /opt/medusa/medusa-store
+cd /opt/medusa/medusa-store/apps/backend
 
 # ============================================================
 # 8. Configure systemd service for Medusa
@@ -159,13 +161,13 @@ After=network.target postgresql.service
 Type=simple
 User=ec2-user
 Group=ec2-user
-WorkingDirectory=/opt/medusa/medusa-store/.medusa/server
+WorkingDirectory=/opt/medusa/medusa-store/apps/backend/.medusa/server
 # Medusa v2 build outputs to .medusa/server; start from there
 ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=10
 Environment="NODE_ENV=production"
-EnvironmentFile=/opt/medusa/medusa-store/.medusa/server/.env
+EnvironmentFile=/opt/medusa/medusa-store/apps/backend/.medusa/server/.env
 
 StandardOutput=journal
 StandardError=journal
@@ -177,6 +179,9 @@ EOF
 # Set proper permissions
 chown -R ec2-user:ec2-user /opt/medusa
 chmod -R 755 /opt/medusa
+
+# Also ensure the run-time working dir is accessible
+chown -R ec2-user:ec2-user /opt/medusa/medusa-store/apps/backend/.medusa/server
 
 # ============================================================
 # 9. Configure Nginx as reverse proxy
