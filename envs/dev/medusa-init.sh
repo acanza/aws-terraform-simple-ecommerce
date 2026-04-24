@@ -101,6 +101,11 @@ AUTH_CORS="*"
 
 # Port configuration
 PORT=9000
+
+# Admin authentication type: jwt avoids server-side session cookies (connect-pg-simple),
+# which require a 'session' table and can fail silently in production without Redis/HTTPS.
+# jwt stores the token in localStorage and sends it as Authorization: Bearer on each request.
+ADMIN_AUTH_TYPE=jwt
 EOF
 
 # Also create .env for development
