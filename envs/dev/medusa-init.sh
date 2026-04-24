@@ -52,8 +52,7 @@ mkswap /swapfile
 swapon /swapfile
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
-# Install yarn globally (Medusa uses yarn by default)
-npm install -g yarn
+# create-medusa-app uses npm (--use-npm flag); yarn is not needed
 
 # ============================================================
 # 3. Create Medusa application directory
@@ -84,19 +83,15 @@ echo -e "${YELLOW}[5/9] Configuring Medusa environment...${NC}"
 cat > .env.production << EOF
 # Database Configuration
 DATABASE_URL="postgresql://%%DB_USER%%:%%DB_PASSWORD%%@%%DB_HOST%%:5432/%%DB_NAME%%"
-DATABASE_TYPE="postgres"
 
 # Medusa Server Configuration
 NODE_ENV="production"
 JWT_SECRET="$(openssl rand -base64 32)"
 COOKIE_SECRET="$(openssl rand -base64 32)"
 
-# Admin API Key (change this in production)
-ADMIN_USER_EMAIL="%%ADMIN_USER%%@medusa.local"
-
-# API Configuration
-REDIS_URL="redis://localhost:6379"
+# CORS
 STORE_CORS="*"
+ADMIN_CORS="*"
 
 # Port configuration
 PORT=9000
@@ -106,14 +101,12 @@ EOF
 cp .env.production .env
 
 # ============================================================
-# 6. Install dependencies and build
+# 6. Build Medusa
 # ============================================================
-echo -e "${YELLOW}[6/9] Installing Node.js dependencies...${NC}"
-yarn install --network-timeout 100000
-
-# Build Medusa
-echo -e "${YELLOW}Building Medusa backend...${NC}"
-yarn build
+# create-medusa-app already ran npm install; just build.
+# Using npm (project was created with --use-npm; yarn causes MODULE_NOT_FOUND).
+echo -e "${YELLOW}[6/9] Building Medusa backend (npm run build)...${NC}"
+npm run build
 
 # ============================================================
 # 7. Wait for RDS and create database
@@ -130,14 +123,16 @@ for i in {1..30}; do
     sleep 10
 done
 
-# Create Medusa database if it doesn't exist
-PGPASSWORD="%%DB_PASSWORD%%" psql -h %%DB_HOST%% -U %%DB_USER%% -d postgres << EOF_SQL
-CREATE DATABASE %%DB_NAME%% OWNER %%DB_USER%%;
-EOF_SQL
+# Create Medusa database only if it doesn't already exist
+# (the RDS instance may already have a database from a previous run)
+PGPASSWORD="%%DB_PASSWORD%%" psql -h %%DB_HOST%% -U %%DB_USER%% -d postgres -c \
+  "SELECT 1 FROM pg_database WHERE datname='%%DB_NAME%%'" | grep -q 1 || \
+  PGPASSWORD="%%DB_PASSWORD%%" psql -h %%DB_HOST%% -U %%DB_USER%% -d postgres -c \
+  "CREATE DATABASE %%DB_NAME%% OWNER %%DB_USER%%"
 
-# Run Medusa migrations
+# Run Medusa v2 migrations (command changed from v1's 'migrations run')
 echo -e "${YELLOW}Running Medusa database migrations...${NC}"
-yarn medusa migrations run
+npx medusa db:migrate
 
 # ============================================================
 # 8. Configure systemd service for Medusa
@@ -153,7 +148,8 @@ Type=simple
 User=ec2-user
 Group=ec2-user
 WorkingDirectory=/opt/medusa/medusa-store
-ExecStart=/usr/local/bin/node dist/index.js
+# Medusa v2 compiles to .medusa/server/; 'npm start' runs 'medusa start' correctly
+ExecStart=/usr/bin/npm start
 Restart=always
 RestartSec=10
 Environment="NODE_ENV=production"

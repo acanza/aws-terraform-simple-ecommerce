@@ -7,7 +7,7 @@ data "aws_ami" "amazon_linux_2023" {
 
   filter {
     name   = "name"
-    values = ["al2023-ami-*-${var.instance_type == "t4g.micro" ? "arm64" : "x86_64"}"]
+    values = ["al2023-ami-*-${startswith(var.instance_type, "t4g.") ? "arm64" : "x86_64"}"]
   }
 
   filter {
