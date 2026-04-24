@@ -143,10 +143,12 @@ echo -e "${YELLOW}Installing production dependencies and running migrations...${
 cd /opt/medusa/medusa-store/apps/backend/.medusa/server
 # --legacy-peer-deps: Medusa v2 has react@19 peer dep conflicts with @medusajs/icons on npm v10+
 npm install --legacy-peer-deps
-# Copy env file so systemd EnvironmentFile and predeploy script can read it
+# Copy env file so systemd EnvironmentFile and medusa db:migrate can read it
 cp /opt/medusa/medusa-store/apps/backend/.env.production .env
-npm run predeploy
+# Run migrations directly from apps/backend (where the medusa binary lives)
+# .medusa/server/package.json does not have a predeploy script unless added before build
 cd /opt/medusa/medusa-store/apps/backend
+npx medusa db:migrate
 
 # ============================================================
 # 8. Configure systemd service for Medusa
