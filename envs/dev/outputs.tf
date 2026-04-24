@@ -225,7 +225,7 @@ output "medusa_api_url" {
 
 output "medusa_admin_dashboard_url" {
   description = "Medusa Commerce admin dashboard URL"
-  value       = "http://${module.ec2.public_ip}/admin"
+  value       = "http://${module.ec2.public_ip}/app"
 }
 
 output "medusa_admin_email" {

@@ -53,6 +53,7 @@ swapon /swapfile
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
 # create-medusa-app uses npm (--use-npm flag); yarn is not needed
+# Redis is NOT required in dev: Medusa v2 uses Local Event Module (Node EventEmitter) by default
 
 # ============================================================
 # 3. Create Medusa application directory
@@ -89,9 +90,13 @@ NODE_ENV="production"
 JWT_SECRET="$(openssl rand -base64 32)"
 COOKIE_SECRET="$(openssl rand -base64 32)"
 
+# Worker mode (shared = server + worker in a single process, valid for dev)
+MEDUSA_WORKER_MODE="shared"
+
 # CORS
 STORE_CORS="*"
 ADMIN_CORS="*"
+AUTH_CORS="*"
 
 # Port configuration
 PORT=9000
@@ -105,8 +110,10 @@ cp .env.production .env
 # ============================================================
 # create-medusa-app already ran npm install; just build.
 # Using npm (project was created with --use-npm; yarn causes MODULE_NOT_FOUND).
-echo -e "${YELLOW}[6/9] Building Medusa backend (npm run build)...${NC}"
-npm run build
+echo -e "${YELLOW}[6/9] Building Medusa backend (npx medusa build)...${NC}"
+# create-medusa-app@2.14.0 generates a broken 'build' script ('npm -r build').
+# Calling 'npx medusa build' directly bypasses the broken package.json script.
+npx medusa build
 
 # ============================================================
 # 7. Wait for RDS and create database
@@ -130,9 +137,14 @@ PGPASSWORD="%%DB_PASSWORD%%" psql -h %%DB_HOST%% -U %%DB_USER%% -d postgres -c \
   PGPASSWORD="%%DB_PASSWORD%%" psql -h %%DB_HOST%% -U %%DB_USER%% -d postgres -c \
   "CREATE DATABASE %%DB_NAME%% OWNER %%DB_USER%%"
 
-# Run Medusa v2 migrations (command changed from v1's 'migrations run')
-echo -e "${YELLOW}Running Medusa database migrations...${NC}"
-npx medusa db:migrate
+# Install deps in .medusa/server and run migrations (predeploy = medusa db:migrate)
+echo -e "${YELLOW}Installing production dependencies and running migrations...${NC}"
+cd /opt/medusa/medusa-store/.medusa/server
+npm install
+# Copy env file so systemd EnvironmentFile and predeploy script can read it
+cp /opt/medusa/medusa-store/.env.production .env
+npm run predeploy
+cd /opt/medusa/medusa-store
 
 # ============================================================
 # 8. Configure systemd service for Medusa
@@ -147,13 +159,13 @@ After=network.target postgresql.service
 Type=simple
 User=ec2-user
 Group=ec2-user
-WorkingDirectory=/opt/medusa/medusa-store
-# Medusa v2 compiles to .medusa/server/; 'npm start' runs 'medusa start' correctly
-ExecStart=/usr/bin/npm start
+WorkingDirectory=/opt/medusa/medusa-store/.medusa/server
+# Medusa v2 build outputs to .medusa/server; start from there
+ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=10
 Environment="NODE_ENV=production"
-EnvironmentFile=/opt/medusa/medusa-store/.env.production
+EnvironmentFile=/opt/medusa/medusa-store/.medusa/server/.env
 
 StandardOutput=journal
 StandardError=journal
@@ -256,7 +268,7 @@ INSTANCE_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 echo -e "${GREEN}✓ Medusa installation complete!${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════${NC}"
 echo -e "${YELLOW}Medusa API URL: http://$INSTANCE_IP${NC}"
-echo -e "${YELLOW}Medusa Admin: http://$INSTANCE_IP/admin${NC}"
+echo -e "${YELLOW}Medusa Admin: http://$INSTANCE_IP/app${NC}"
 echo -e "${YELLOW}Health Check: http://$INSTANCE_IP/health${NC}"
 echo -e "${YELLOW}To set up HTTPS, run: certbot --nginx -d your-domain.com${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════${NC}"
