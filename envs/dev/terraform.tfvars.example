@@ -81,3 +81,19 @@ rds_master_password  = "devPassword123!"  # ⚠️  Change this for any real env
 # - Storage: 20 GB (default), increase as needed
 # - Multi-AZ: false (dev), true (production)
 
+################################################################################
+# App Runner – Medusa Starter Storefront (Next.js SSR)
+#
+# Deployment order (chicken-and-egg with ECR):
+#   Step 1: keep enable_app_runner = false → terraform apply  (creates ECR only)
+#   Step 2: build & push Docker image to the ECR URL shown in outputs:
+#             docker build -t storefront ./storefront
+#             docker tag storefront:latest <storefront_ecr_repository_url>:latest
+#             aws ecr get-login-password --region eu-west-3 | \
+#               docker login --username AWS --password-stdin <storefront_ecr_repository_url>
+#             docker push <storefront_ecr_repository_url>:latest
+#   Step 3: set enable_app_runner = true → terraform apply  (creates App Runner)
+#
+# Cost: ~$10/month for 0.5 vCPU / 1 GB (1 instance, dev)
+################################################################################
+enable_app_runner = false  # Set to true AFTER pushing the Docker image to ECR

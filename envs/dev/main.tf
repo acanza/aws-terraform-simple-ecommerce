@@ -130,5 +130,44 @@ module "rds" {
   ]
 }
 
+# App Runner – Medusa Starter Storefront (Next.js SSR)
+#
+# Deployment order (chicken-and-egg with ECR):
+#   1. Set enable_app_runner = false → apply  (creates ECR repo)
+#   2. Build & push Docker image to the ECR repo URL shown in outputs
+#   3. Set enable_app_runner = true  → apply  (creates App Runner service)
+module "app_runner" {
+  count  = var.enable_app_runner ? 1 : 0
+  source = "../../modules/app-runner"
+
+  project_name = "ecommerce"
+  environment  = "dev"
+  region       = var.region
+
+  # Medusa backend API URL injected as NEXT_PUBLIC_MEDUSA_BACKEND_URL
+  medusa_backend_url = "http://${module.ec2.public_ip}"
+
+  # Medusa Starter Storefront listens on port 8000 by default
+  port = 8000
+
+  # Cost optimisation for dev: minimum viable compute (0.5 vCPU / 1 GB)
+  cpu    = "512"
+  memory = "1024"
+
+  # Single instance in dev to keep costs low (~$10/month)
+  min_size        = 1
+  max_size        = 1
+  max_concurrency = 100
+
+  # Redeploy automatically when a new :latest image is pushed to ECR
+  auto_deployments_enabled = true
+
+  tags = {
+    CostCenter = "engineering"
+  }
+
+  depends_on = [module.ec2]
+}
+
 
 

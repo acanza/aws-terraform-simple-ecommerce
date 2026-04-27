@@ -97,3 +97,9 @@ variable "ec2_key_name" {
   type        = string
   default     = null
 }
+
+variable "enable_app_runner" {
+  description = "Deploy App Runner service for the Medusa Starter Storefront (Next.js). Must push a Docker image to ECR before setting to true"
+  type        = bool
+  default     = false
+}

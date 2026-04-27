@@ -204,5 +204,22 @@ output "medusa_setup_instructions" {
   sensitive = true
 }
 
+# ============================================================
+# App Runner – Medusa Starter Storefront
+# ============================================================
 
+output "storefront_url" {
+  description = "HTTPS URL of the Medusa Starter Storefront served by App Runner (null if enable_app_runner = false)"
+  value       = try(module.app_runner[0].service_url, null)
+}
+
+output "storefront_ecr_repository_url" {
+  description = "ECR repository URL – push your Docker image here before setting enable_app_runner = true"
+  value       = try(module.app_runner[0].ecr_repository_url, null)
+}
+
+output "app_runner_service_id" {
+  description = "App Runner service identifier (null if enable_app_runner = false)"
+  value       = try(module.app_runner[0].service_id, null)
+}
 
