@@ -39,9 +39,6 @@ module "iam" {
   enable_ssh_user     = true
   ssh_user_name       = "ec2-ssh-dev"
 
-  # S3 bucket ARN for EC2 instance role (will be set after bucket creation)
-  s3_bucket_arn = ""
-
   tags = {
     CostCenter = "engineering"
   }
