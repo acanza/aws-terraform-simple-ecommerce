@@ -215,46 +215,46 @@ output "frontend_url" {
 }
 
 # ============================================================
-# WordPress Configuration
+# Medusa Commerce Configuration
 # ============================================================
 
-output "wordpress_site_url" {
-  description = "WordPress site URL (access from browser)"
+output "medusa_api_url" {
+  description = "Medusa Commerce API URL (access from frontend)"
   value       = "http://${module.ec2.public_ip}"
 }
 
-output "wordpress_admin_url" {
-  description = "WordPress admin login URL"
-  value       = "http://${module.ec2.public_ip}/wp-admin"
+output "medusa_admin_dashboard_url" {
+  description = "Medusa Commerce admin dashboard URL"
+  value       = "http://${module.ec2.public_ip}/app"
 }
 
-output "wordpress_admin_user" {
-  description = "WordPress administrator username"
-  value       = var.wordpress_admin_user
+output "medusa_admin_email" {
+  description = "Medusa Commerce administrator email"
+  value       = var.medusa_admin_user
 }
 
-output "wordpress_database_name" {
-  description = "PostgreSQL database name for WordPress"
-  value       = var.wordpress_database_name
+output "medusa_database_name" {
+  description = "PostgreSQL database name for Medusa Commerce"
+  value       = var.medusa_database_name
 }
 
-output "wordpress_db_endpoint" {
-  description = "RDS PostgreSQL endpoint for WordPress database connection"
+output "medusa_db_endpoint" {
+  description = "RDS PostgreSQL endpoint for Medusa database connection"
   value       = try(module.rds[0].db_instance_endpoint, "NOT CREATED - enable_rds must be true")
   sensitive   = true
 }
 
-output "wordpress_setup_instructions" {
-  description = "Instructions to complete WordPress setup"
+output "medusa_setup_instructions" {
+  description = "Instructions to complete Medusa Commerce setup"
   value = format(<<-EOT
-    WordPress Setup Instructions:
+    Medusa Commerce Setup Instructions:
     
-    1. Access WordPress at: http://%s
-    2. Complete the installation wizard
-    3. Admin URL: http://%s/wp-admin
-    4. Admin User: %s
+    1. Access Medusa API at: http://%s
+    2. Access Admin Dashboard at: http://%s/admin
+    3. Admin Email: %s
+    4. Health Check: http://%s/health
     
-    Database Connection Details (if needed):
+    Database Connection Details:
     - Host: %s
     - Database: %s
     - User: postgres
@@ -263,11 +263,11 @@ output "wordpress_setup_instructions" {
     Notes:
     - After installation, configure SSL/HTTPS with certbot
     - Run: ssh ec2-user@%s 'sudo certbot --nginx -d your-domain.com'
-    - Update wordpress_db_host variable with actual RDS endpoint after creation
+    - Update medusa_db_host variable with actual RDS endpoint after creation
     EOT
-    , module.ec2.public_ip, module.ec2.public_ip, var.wordpress_admin_user,
-    try(module.rds[0].db_instance_endpoint, "pending"), var.wordpress_database_name,
-    module.ec2.public_ip
+    , module.ec2.public_ip, module.ec2.public_ip, var.medusa_admin_user,
+    module.ec2.public_ip, try(module.rds[0].db_instance_endpoint, "pending"),
+    var.medusa_database_name, module.ec2.public_ip
   )
   sensitive = true
 }

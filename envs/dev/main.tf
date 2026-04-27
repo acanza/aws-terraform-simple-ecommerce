@@ -47,15 +47,15 @@ module "iam" {
   }
 }
 
-# EC2 Instance - WordPress web server
+# EC2 Instance - Medusa Commerce backend server
 module "ec2" {
   source = "../../modules/ec2"
 
   region        = var.region
   environment   = "dev"
   project_name  = "ecommerce"
-  instance_name = "wordpress-server"
-  instance_type = "t4g.micro" # Free tier eligible, ARM-based
+  instance_name = "medusa-server"
+  instance_type = "t4g.small" # 2 GB RAM required for Medusa npm install
 
   # Deploy to public subnet 1 for internet accessibility
   subnet_id         = module.vpc.public_subnet_1_id
@@ -67,11 +67,11 @@ module "ec2" {
   # SSH key pair for EC2 access
   key_name = var.ec2_key_name
 
-  # WordPress initialization script
-  user_data = local.wordpress_user_data
+  # Medusa initialization script
+  user_data = local.medusa_user_data
 
   # Cost optimization defaults
-  root_volume_size        = 20 # Increased for WordPress
+  root_volume_size        = 30 # AL2023 AMI requires minimum 30 GB
   root_volume_type        = "gp3"
   enable_ebs_optimization = false
   monitoring_enabled      = false
@@ -101,7 +101,7 @@ module "rds" {
   # Database credentials (use Secrets Manager in production)
   database_username = "postgres"
   database_password = var.rds_master_password
-  database_name     = var.wordpress_database_name
+  database_name     = var.medusa_database_name
 
   # Allow EC2 instance to connect to RDS
   allowed_security_group_ids = [module.security_groups.ec2_security_group_id]
@@ -113,7 +113,7 @@ module "rds" {
   # Development settings
   multi_az                           = false
   backup_retention_period            = 7
-  skip_final_snapshot                = false
+  skip_final_snapshot                = true  # Dev environment: faster cleanup, no snapshot needed
   enable_deletion_protection         = false # Easier cleanup in dev
   enable_storage_encryption          = true
   enable_iam_database_authentication = false # Simplified auth for dev

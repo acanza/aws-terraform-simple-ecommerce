@@ -21,13 +21,13 @@ variable "trusted_ssh_cidr" {
 }
 
 variable "enable_http" {
-  description = "Enable HTTP (port 80) to EC2 instances (required for WordPress)"
+  description = "Enable HTTP (port 80) to EC2 instances (required for Medusa)"
   type        = bool
   default     = true
 }
 
 variable "enable_https" {
-  description = "Enable HTTPS (port 443) to EC2 instances (required for WordPress)"
+  description = "Enable HTTPS (port 443) to EC2 instances (required for Medusa)"
   type        = bool
   default     = true
 }
@@ -55,39 +55,39 @@ variable "enable_rds" {
   default     = true
 }
 
-variable "wordpress_database_name" {
-  description = "Database name for WordPress"
+variable "medusa_database_name" {
+  description = "Database name for Medusa Commerce backend"
   type        = string
-  default     = "wordpress"
+  default     = "medusa"
   validation {
-    condition     = can(regex("^[a-z0-9_]{1,63}$", var.wordpress_database_name))
+    condition     = can(regex("^[a-z0-9_]{1,63}$", var.medusa_database_name))
     error_message = "Database name must be lowercase alphanumeric with underscores, max 63 chars."
   }
 }
 
-variable "wordpress_admin_user" {
-  description = "WordPress administrator username"
+variable "medusa_admin_user" {
+  description = "Medusa administrator email/username"
   type        = string
-  default     = "admin"
+  default     = "admin@medusa.local"
   validation {
-    condition     = length(var.wordpress_admin_user) >= 1 && length(var.wordpress_admin_user) <= 60
-    error_message = "WordPress admin user must be between 1 and 60 characters."
+    condition     = length(var.medusa_admin_user) >= 1 && length(var.medusa_admin_user) <= 60
+    error_message = "Medusa admin user must be between 1 and 60 characters."
   }
 }
 
-variable "wordpress_admin_password" {
-  description = "WordPress administrator password (minimum 8 characters)"
+variable "medusa_admin_password" {
+  description = "Medusa administrator password (minimum 8 characters, for development only)"
   type        = string
   sensitive   = true
-  default     = "WordPress2024!" # Only for development - CHANGE for production
+  default     = "Medusa2024!" # Only for development - CHANGE for production
   validation {
-    condition     = length(var.wordpress_admin_password) >= 8 && length(var.wordpress_admin_password) <= 255
-    error_message = "WordPress admin password must be between 8 and 255 characters."
+    condition     = length(var.medusa_admin_password) >= 8 && length(var.medusa_admin_password) <= 255
+    error_message = "Medusa admin password must be between 8 and 255 characters."
   }
 }
 
-variable "wordpress_db_host" {
-  description = "RDS database host/endpoint (will be set by outputs after RDS creation, or use predictable name)"
+variable "medusa_db_host" {
+  description = "RDS database host/endpoint (will be set by outputs after RDS creation)"
   type        = string
   default     = "" # Will be overridden after RDS is created
 }

@@ -26,7 +26,7 @@ vpc_cidr = "10.0.0.0/16"
 # trusted_ssh_cidr = null
 
 ################################################################################
-# Web Traffic Configuration (Required for WordPress)
+# Web Traffic Configuration (Required for Medusa Commerce)
 # 
 # Set to 'true' to allow HTTP/HTTPS from the internet
 ################################################################################
@@ -34,7 +34,7 @@ enable_http  = true
 enable_https = true
 
 ################################################################################
-# Database Configuration (PostgreSQL for WordPress)
+# Database Configuration (PostgreSQL for Medusa Commerce)
 ################################################################################
 db_port = 5432
 
@@ -45,11 +45,11 @@ enable_rds          = true
 rds_master_password = "ChangeMe123!"  # ⚠️ CHANGE FOR PRODUCTION!
 
 ################################################################################
-# WordPress Configuration
+# Medusa Commerce Configuration
 ################################################################################
-wordpress_database_name   = "wordpress"
-wordpress_admin_user      = "admin"              # Change to your preferred username
-wordpress_admin_password  = "ChangeMe123!"       # ⚠️ CHANGE FOR PRODUCTION!
+medusa_database_name   = "medusa"
+medusa_admin_user      = "admin@medusa.local"      # Admin email for Medusa
+medusa_admin_password  = "ChangeMe123!"            # ⚠️ CHANGE FOR PRODUCTION!
 # 
 # Set enable_rds = true to deploy a PostgreSQL database in private subnets
 # By default the database is accessible ONLY from EC2 instances in the VPC
