@@ -147,45 +147,6 @@ output "read_only_group_arn" {
 }
 
 # ============================================================
-# S3 Images Bucket
-# ============================================================
-
-output "s3_images_bucket_name" {
-  description = "Name of the S3 bucket for storing application images"
-  value       = module.s3_images.bucket_name
-}
-
-output "s3_images_bucket_arn" {
-  description = "ARN of the S3 bucket for images"
-  value       = module.s3_images.bucket_arn
-}
-
-output "s3_images_bucket_domain_name" {
-  description = "Regional domain name of the S3 bucket (for HTTP access)"
-  value       = module.s3_images.bucket_domain_name
-}
-
-output "s3_images_folder_path" {
-  description = "Recommended S3 path for storing images: s3://bucket-name/images/"
-  value       = module.s3_images.images_folder_path
-}
-
-output "s3_images_cloudfront_domain" {
-  description = "CloudFront domain name for distributing images globally"
-  value       = module.s3_images.cloudfront_domain_name
-}
-
-output "s3_images_cloudfront_distribution_id" {
-  description = "CloudFront distribution ID for image cache invalidation"
-  value       = module.s3_images.cloudfront_distribution_id
-}
-
-output "s3_images_url" {
-  description = "Full URL to access images via CloudFront"
-  value       = module.s3_images.images_url
-}
-
-# ============================================================
 # Medusa Commerce Configuration
 # ============================================================
 
