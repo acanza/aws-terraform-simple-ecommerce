@@ -56,6 +56,12 @@ resource "aws_iam_role" "app_runner_ecr_access" {
         Effect    = "Allow"
         Principal = { Service = "build.apprunner.amazonaws.com" }
         Action    = "sts:AssumeRole"
+        # Confine the assume to this account only (confused-deputy mitigation)
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
       }
     ]
   })
@@ -63,9 +69,41 @@ resource "aws_iam_role" "app_runner_ecr_access" {
   tags = local.common_tags
 }
 
-resource "aws_iam_role_policy_attachment" "app_runner_ecr_readonly" {
-  role       = aws_iam_role.app_runner_ecr_access.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess"
+# Custom inline policy instead of AWSAppRunnerServicePolicyForECRAccess.
+# The AWS managed policy uses Resource: "*" for all ECR actions, which allows
+# pulling from every repository in the account.
+# Here we scope image-pull actions to the specific storefront repository ARN.
+# ecr:GetAuthorizationToken must remain Resource: "*" (service-level API, not
+# scoped to a repository by design).
+resource "aws_iam_role_policy" "app_runner_ecr_pull" {
+  name = "ecr-pull-storefront"
+  role = aws_iam_role.app_runner_ecr_access.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowECRImagePull"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:DescribeImages",
+        ]
+        # Scoped to this module's repository only — not account-wide
+        Resource = aws_ecr_repository.storefront.arn
+      },
+      {
+        Sid    = "AllowECRAuthToken"
+        Effect = "Allow"
+        # GetAuthorizationToken is a service-level call and cannot be
+        # constrained to a specific resource ARN
+        Action   = "ecr:GetAuthorizationToken"
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -144,6 +182,6 @@ resource "aws_apprunner_service" "storefront" {
 
   tags = local.common_tags
 
-  # ECR access role must be attached before App Runner tries to pull the image
-  depends_on = [aws_iam_role_policy_attachment.app_runner_ecr_readonly]
+  # ECR access role must be ready before App Runner tries to pull the image
+  depends_on = [aws_iam_role_policy.app_runner_ecr_pull]
 }
