@@ -108,9 +108,12 @@ resource "aws_iam_role_policy" "app_runner_ecr_pull" {
 
 # ─────────────────────────────────────────────────────────────────────────────
 # App Runner auto-scaling configuration
+# Created only when create_service = true (requires a Docker image in ECR)
 # ─────────────────────────────────────────────────────────────────────────────
 
 resource "aws_apprunner_auto_scaling_configuration_version" "storefront" {
+  count = var.create_service ? 1 : 0
+
   auto_scaling_configuration_name = local.service_name
 
   min_size        = var.min_size
@@ -134,6 +137,8 @@ resource "aws_apprunner_auto_scaling_configuration_version" "storefront" {
 # ─────────────────────────────────────────────────────────────────────────────
 
 resource "aws_apprunner_service" "storefront" {
+  count = var.create_service ? 1 : 0
+
   service_name = local.service_name
 
   source_configuration {
@@ -169,7 +174,7 @@ resource "aws_apprunner_service" "storefront" {
     memory = var.memory
   }
 
-  auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.storefront.arn
+  auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.storefront[0].arn
 
   health_check_configuration {
     healthy_threshold   = 1

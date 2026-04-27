@@ -58,6 +58,12 @@ variable "image_tag" {
   default     = "latest"
 }
 
+variable "create_service" {
+  description = "Create the App Runner service. Set to false on the first apply (only ECR + IAM will be created); set to true after pushing a Docker image to ECR"
+  type        = bool
+  default     = false
+}
+
 variable "auto_deployments_enabled" {
   description = "Automatically redeploy the service when a new image is pushed to ECR"
   type        = bool
