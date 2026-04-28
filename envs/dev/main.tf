@@ -18,11 +18,11 @@ module "security_groups" {
   environment      = "dev"
   project_name     = "ecommerce"
   vpc_id           = module.vpc.vpc_id
-  trusted_ssh_cidr  = var.trusted_ssh_cidr
-  enable_http       = var.enable_http
-  enable_https      = var.enable_https
-  enable_medusa_api = true
-  db_port           = var.db_port
+  trusted_ssh_cidr = var.trusted_ssh_cidr
+  enable_http      = var.enable_http
+  enable_https     = var.enable_https
+  medusa_api_cidr  = var.medusa_api_cidr
+  db_port          = var.db_port
 
   tags = {
     CostCenter = "engineering"

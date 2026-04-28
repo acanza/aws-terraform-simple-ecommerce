@@ -51,15 +51,16 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_https" {
   )
 }
 
-# Conditional: Inbound Medusa API from internet (if enabled)
-# Required for SSG during Docker builds and for dev storefront → backend calls
+# Conditional: Inbound Medusa API from a trusted CIDR (workstation during Docker build)
+# Scoped to a single IP (/32) — never open to 0.0.0.0/0
+# Planned migration: replace with VPC Connector so App Runner reaches EC2 internally
 resource "aws_vpc_security_group_ingress_rule" "ec2_medusa_api" {
-  count             = var.enable_medusa_api ? 1 : 0
-  description       = "Medusa API (port 9000) from internet"
+  count             = var.medusa_api_cidr != null ? 1 : 0
+  description       = "Medusa API (port 9000) from trusted workstation CIDR"
   from_port         = 9000
   to_port           = 9000
   ip_protocol       = "tcp"
-  cidr_ipv4         = "0.0.0.0/0"
+  cidr_ipv4         = var.medusa_api_cidr
   security_group_id = aws_security_group.ec2.id
 
   tags = merge(
