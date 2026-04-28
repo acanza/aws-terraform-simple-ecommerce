@@ -153,8 +153,12 @@ resource "aws_apprunner_service" "storefront" {
 
         runtime_environment_variables = merge(
           {
-            # Standard env vars consumed by Medusa Starter Storefront
+            # NEXT_PUBLIC_MEDUSA_BACKEND_URL: baked into JS bundle at build time (client-side)
+            # MEDUSA_BACKEND_URL: read at runtime by Next.js middleware and server components
+            # Both must point to the same backend — if only the build-arg is set, the
+            # middleware will crash at startup trying to fetch regions from localhost:9000
             NEXT_PUBLIC_MEDUSA_BACKEND_URL = var.medusa_backend_url
+            MEDUSA_BACKEND_URL             = var.medusa_backend_url
             NODE_ENV                       = "production"
           },
           var.env_vars
