@@ -51,6 +51,25 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_https" {
   )
 }
 
+# Conditional: Inbound Medusa API from internet (if enabled)
+# Required for SSG during Docker builds and for dev storefront → backend calls
+resource "aws_vpc_security_group_ingress_rule" "ec2_medusa_api" {
+  count             = var.enable_medusa_api ? 1 : 0
+  description       = "Medusa API (port 9000) from internet"
+  from_port         = 9000
+  to_port           = 9000
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+  security_group_id = aws_security_group.ec2.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-ec2-medusa-api"
+    }
+  )
+}
+
 # Conditional: Inbound SSH from trusted CIDR (if enabled)
 resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
   count             = var.trusted_ssh_cidr != null ? 1 : 0

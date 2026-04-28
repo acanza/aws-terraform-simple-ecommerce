@@ -46,6 +46,12 @@ variable "enable_https" {
   default     = false
 }
 
+variable "enable_medusa_api" {
+  description = "Enable Medusa API (port 9000) access from the internet. Required during Docker builds that use SSG and in dev environments where the storefront calls the backend directly."
+  type        = bool
+  default     = false
+}
+
 variable "db_port" {
   description = "Database port for RDS security group"
   type        = number

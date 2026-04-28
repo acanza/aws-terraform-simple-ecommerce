@@ -18,10 +18,11 @@ module "security_groups" {
   environment      = "dev"
   project_name     = "ecommerce"
   vpc_id           = module.vpc.vpc_id
-  trusted_ssh_cidr = var.trusted_ssh_cidr
-  enable_http      = var.enable_http
-  enable_https     = var.enable_https
-  db_port          = var.db_port
+  trusted_ssh_cidr  = var.trusted_ssh_cidr
+  enable_http       = var.enable_http
+  enable_https      = var.enable_https
+  enable_medusa_api = true
+  db_port           = var.db_port
 
   tags = {
     CostCenter = "engineering"
@@ -144,7 +145,8 @@ module "app_runner" {
   create_service = var.enable_app_runner
 
   # Medusa backend API URL injected as NEXT_PUBLIC_MEDUSA_BACKEND_URL
-  medusa_backend_url = "http://${module.ec2.public_ip}"
+  # Port 9000 is required — Medusa listens on 9000, not 80
+  medusa_backend_url = "http://${module.ec2.public_ip}:9000"
 
   # Medusa Starter Storefront listens on port 8000 by default
   port = 8000
