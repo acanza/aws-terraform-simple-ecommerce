@@ -111,6 +111,21 @@ resource "aws_iam_role_policy" "app_runner_ecr_pull" {
 # Created only when create_service = true (requires a Docker image in ECR)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# VPC Connector – routes App Runner outbound traffic through the VPC
+# Created only when enable_vpc_connector = true AND create_service = true.
+# Use private subnets so internet-bound traffic exits via the NAT gateway.
+# ─────────────────────────────────────────────────────────────────────────────
+resource "aws_apprunner_vpc_connector" "storefront" {
+  count = var.create_service && var.enable_vpc_connector ? 1 : 0
+
+  vpc_connector_name = local.service_name
+  subnets            = var.subnet_ids
+  security_groups    = [var.vpc_connector_security_group_id]
+
+  tags = local.common_tags
+}
+
 resource "aws_apprunner_auto_scaling_configuration_version" "storefront" {
   count = var.create_service ? 1 : 0
 
@@ -176,6 +191,22 @@ resource "aws_apprunner_service" "storefront" {
   instance_configuration {
     cpu    = var.cpu
     memory = var.memory
+  }
+
+  # VPC Connector routes all outbound traffic through the VPC.
+  # ingress remains public so end users can reach the storefront over HTTPS.
+  # Only created when enable_vpc_connector = true.
+  dynamic "network_configuration" {
+    for_each = var.enable_vpc_connector ? [1] : []
+    content {
+      egress_configuration {
+        egress_type       = "VPC"
+        vpc_connector_arn = aws_apprunner_vpc_connector.storefront[0].arn
+      }
+      ingress_configuration {
+        is_publicly_accessible = true
+      }
+    }
   }
 
   auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.storefront[0].arn

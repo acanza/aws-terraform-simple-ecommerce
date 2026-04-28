@@ -163,6 +163,12 @@ module "app_runner" {
   # Redeploy automatically when a new :latest image is pushed to ECR
   auto_deployments_enabled = true
 
+  # VPC Connector: routes App Runner → EC2 traffic internally (no public port 9000)
+  # Uses private subnets so internet-bound traffic exits via the NAT gateway
+  enable_vpc_connector            = true
+  subnet_ids                      = module.vpc.private_subnets
+  vpc_connector_security_group_id = module.security_groups.app_runner_security_group_id
+
   tags = {
     CostCenter = "engineering"
   }

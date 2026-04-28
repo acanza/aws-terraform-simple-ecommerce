@@ -108,6 +108,39 @@ variable "env_vars" {
   default     = {}
 }
 
+# ── VPC Connector (optional) ──────────────────────────────────────────────────
+# When enable_vpc_connector = true, App Runner routes all outbound traffic
+# through the VPC. Required to reach EC2 on port 9000 without exposing it
+# to the internet. subnet_ids should be private subnets (for NAT gateway
+# access to the internet). vpc_connector_security_group_id must allow egress
+# to EC2:9000 and internet:443.
+
+variable "enable_vpc_connector" {
+  description = "Route App Runner outbound traffic through the VPC. Required to reach EC2 on port 9000 without opening it to the internet."
+  type        = bool
+  default     = false
+}
+
+variable "subnet_ids" {
+  description = "List of private subnet IDs for the VPC Connector. Use private subnets so internet-bound traffic exits via NAT gateway."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = !var.enable_vpc_connector || length(var.subnet_ids) > 0
+    error_message = "subnet_ids must be provided when enable_vpc_connector is true."
+  }
+}
+
+variable "vpc_connector_security_group_id" {
+  description = "ID of the security group to attach to the VPC Connector. Must allow egress to EC2:9000 and internet:443."
+  type        = string
+  default     = null
+  validation {
+    condition     = !var.enable_vpc_connector || var.vpc_connector_security_group_id != null
+    error_message = "vpc_connector_security_group_id must be provided when enable_vpc_connector is true."
+  }
+}
+
 variable "tags" {
   description = "Additional tags to apply to all resources in this module"
   type        = map(string)
