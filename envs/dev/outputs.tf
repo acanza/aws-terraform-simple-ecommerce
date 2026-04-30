@@ -147,74 +147,6 @@ output "read_only_group_arn" {
 }
 
 # ============================================================
-# S3 Images Bucket
-# ============================================================
-
-output "s3_images_bucket_name" {
-  description = "Name of the S3 bucket for storing application images"
-  value       = module.s3_images.bucket_name
-}
-
-output "s3_images_bucket_arn" {
-  description = "ARN of the S3 bucket for images"
-  value       = module.s3_images.bucket_arn
-}
-
-output "s3_images_bucket_domain_name" {
-  description = "Regional domain name of the S3 bucket (for HTTP access)"
-  value       = module.s3_images.bucket_domain_name
-}
-
-output "s3_images_folder_path" {
-  description = "Recommended S3 path for storing images: s3://bucket-name/images/"
-  value       = module.s3_images.images_folder_path
-}
-
-output "s3_images_cloudfront_domain" {
-  description = "CloudFront domain name for distributing images globally"
-  value       = module.s3_images.cloudfront_domain_name
-}
-
-output "s3_images_cloudfront_distribution_id" {
-  description = "CloudFront distribution ID for image cache invalidation"
-  value       = module.s3_images.cloudfront_distribution_id
-}
-
-output "s3_images_url" {
-  description = "Full URL to access images via CloudFront"
-  value       = module.s3_images.images_url
-}
-
-# ============================================================
-# S3 Frontend + CloudFront
-# ============================================================
-
-output "s3_frontend_bucket_name" {
-  description = "Name of the S3 bucket hosting the frontend application"
-  value       = module.s3_frontend.bucket_name
-}
-
-output "s3_frontend_bucket_arn" {
-  description = "ARN of the S3 frontend bucket"
-  value       = module.s3_frontend.bucket_arn
-}
-
-output "cloudfront_domain_name" {
-  description = "CloudFront distribution domain name for accessing the frontend"
-  value       = module.s3_frontend.cloudfront_domain_name
-}
-
-output "cloudfront_distribution_id" {
-  description = "CloudFront distribution ID (use for cache invalidation)"
-  value       = module.s3_frontend.cloudfront_distribution_id
-}
-
-output "frontend_url" {
-  description = "Full URL to access the frontend application"
-  value       = module.s3_frontend.frontend_url
-}
-
-# ============================================================
 # Medusa Commerce Configuration
 # ============================================================
 
@@ -272,5 +204,22 @@ output "medusa_setup_instructions" {
   sensitive = true
 }
 
+# ============================================================
+# App Runner – Medusa Starter Storefront
+# ============================================================
 
+output "storefront_url" {
+  description = "HTTPS URL of the Medusa Starter Storefront served by App Runner (null if enable_app_runner = false)"
+  value       = module.app_runner.service_url
+}
+
+output "storefront_ecr_repository_url" {
+  description = "ECR repository URL – push your Docker image here before setting enable_app_runner = true"
+  value       = module.app_runner.ecr_repository_url
+}
+
+output "app_runner_service_id" {
+  description = "App Runner service identifier (null if enable_app_runner = false)"
+  value       = module.app_runner.service_id
+}
 

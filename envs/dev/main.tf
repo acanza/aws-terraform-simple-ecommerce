@@ -21,6 +21,7 @@ module "security_groups" {
   trusted_ssh_cidr = var.trusted_ssh_cidr
   enable_http      = var.enable_http
   enable_https     = var.enable_https
+  medusa_api_cidr  = var.medusa_api_cidr
   db_port          = var.db_port
 
   tags = {
@@ -38,9 +39,6 @@ module "iam" {
   terraform_user_name = "terraform-ecommerce-dev"
   enable_ssh_user     = true
   ssh_user_name       = "ec2-ssh-dev"
-
-  # S3 bucket ARN for EC2 instance role (will be set after bucket creation)
-  s3_bucket_arn = ""
 
   tags = {
     CostCenter = "engineering"
@@ -130,70 +128,56 @@ module "rds" {
   ]
 }
 
-# S3 Bucket for storing application images
-module "s3_images" {
-  source = "../../modules/s3"
+# App Runner – Medusa Starter Storefront (Next.js SSR)
+#
+# Deployment order (chicken-and-egg with ECR):
+#   Step 1: enable_app_runner = false → terraform apply  (creates ECR + IAM only)
+#   Step 2: build & push Docker image to the ECR URL shown in storefront_ecr_repository_url output
+#   Step 3: enable_app_runner = true  → terraform apply  (creates App Runner service)
+module "app_runner" {
+  source = "../../modules/app-runner"
 
-  bucket_name = "ecommerce-dev-images-${data.aws_caller_identity.current.account_id}"
-  environment = "dev"
+  project_name = "ecommerce"
+  environment  = "dev"
+  region       = var.region
 
-  enable_versioning             = true
-  enable_server_side_encryption = true
-  lifecycle_expiration_days     = 0 # Keep images indefinitely in dev
+  # create_service gates only the App Runner service; ECR + IAM are always created
+  create_service = var.enable_app_runner
 
-  # Enable CloudFront for image distribution
-  enable_cloudfront      = true
-  cloudfront_price_class = "PriceClass_100" # Cost-optimized
-  cache_ttl_images       = 2592000          # 30 days
+  # Medusa backend API URL injected as NEXT_PUBLIC_MEDUSA_BACKEND_URL
+  # Uses the private IP so traffic stays inside the VPC via the VPC Connector.
+  # Using the public IP causes traffic to exit via NAT gateway, which means
+  # the source IP reaching EC2 is the NAT public IP, not the App Runner SG —
+  # so the security group reference rule would never match.
+  medusa_backend_url = "http://${module.ec2.private_ip}:9000"
 
-  # Allow EC2 instance role to read and write images
-  read_access_role_arns  = [module.iam.ec2_instance_role_arn]
-  write_access_role_arns = [module.iam.ec2_instance_role_arn]
+  # Medusa Starter Storefront listens on port 8000 by default
+  port = 8000
 
-  tags = {
-    CostCenter = "engineering"
-  }
+  # Cost optimisation for dev: minimum viable compute (0.5 vCPU / 1 GB)
+  cpu    = "512"
+  memory = "1024"
 
-  depends_on = [
-    module.iam,
-    module.ec2
-  ]
-}
+  # Single instance in dev to keep costs low (~$10/month)
+  min_size        = 1
+  max_size        = 1
+  max_concurrency = 100
 
-# Data source to get current AWS account ID
-data "aws_caller_identity" "current" {
-}
+  # Redeploy automatically when a new :latest image is pushed to ECR
+  auto_deployments_enabled = true
 
-# S3 + CloudFront for hosting the frontend application (React, Next.js, Vue, etc.)
-module "s3_frontend" {
-  source = "../../modules/s3-frontend"
-
-  bucket_name = "ecommerce-dev-frontend-${data.aws_caller_identity.current.account_id}"
-  environment = "dev"
-
-  # Enable CloudFront for global distribution
-  enable_cloudfront = true
-  price_class       = "PriceClass_100" # Cost-optimized for dev (North America, Europe, Asia)
-
-  # Cache configuration
-  cache_ttl_html    = 300  # 5 minutes for HTML (quick updates)
-  cache_ttl_default = 3600 # 1 hour for other assets
-
-  # For SPA routing (React Router, Vue Router, etc.)
-  index_document = "index.html"
-  error_document = "index.html" # Redirect 404 to index.html for SPA
+  # VPC Connector: routes App Runner → EC2 traffic internally (no public port 9000)
+  # Uses private subnets so internet-bound traffic exits via the NAT gateway
+  enable_vpc_connector            = true
+  subnet_ids                      = module.vpc.private_subnets
+  vpc_connector_security_group_id = module.security_groups.app_runner_security_group_id
 
   tags = {
     CostCenter = "engineering"
   }
 
-  depends_on = [aws_s3_bucket.frontend]
+  depends_on = [module.ec2]
 }
 
-# Temporary placeholder S3 bucket for module dependency
-# Remove this after initial deployment
-resource "aws_s3_bucket" "frontend" {
-  count = 0
-  tags  = {}
-}
+
 

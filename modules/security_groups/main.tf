@@ -51,6 +51,26 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_https" {
   )
 }
 
+# Conditional: Inbound Medusa API from a trusted CIDR (workstation during Docker build)
+# Scoped to a single IP (/32) — never open to 0.0.0.0/0
+# Planned migration: replace with VPC Connector so App Runner reaches EC2 internally
+resource "aws_vpc_security_group_ingress_rule" "ec2_medusa_api" {
+  count             = var.medusa_api_cidr != null ? 1 : 0
+  description       = "Medusa API (port 9000) from trusted workstation CIDR"
+  from_port         = 9000
+  to_port           = 9000
+  ip_protocol       = "tcp"
+  cidr_ipv4         = var.medusa_api_cidr
+  security_group_id = aws_security_group.ec2.id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-ec2-medusa-api"
+    }
+  )
+}
+
 # Conditional: Inbound SSH from trusted CIDR (if enabled)
 resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
   count             = var.trusted_ssh_cidr != null ? 1 : 0
@@ -73,6 +93,63 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
 # OUTBOUND (EGRESS) RULES - Restrict to necessary services
 # ============================================================
 # ✅ SECURITY FIX P1: Replace "allow all" with restrictive rules
+
+# ============================================================
+# APP RUNNER VPC CONNECTOR SECURITY GROUP
+# ============================================================
+# Dedicated SG for the App Runner VPC Connector.
+# Keeps App Runner egress rules separate from EC2 rules.
+
+resource "aws_security_group" "app_runner" {
+  name        = "${var.project_name}-${var.environment}-app-runner-sg"
+  description = "Security group for App Runner VPC Connector - controls outbound access from the storefront container"
+  vpc_id      = var.vpc_id
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-app-runner-sg"
+    }
+  )
+}
+
+# App Runner → EC2 Medusa backend (port 9000) — internal VPC traffic
+resource "aws_vpc_security_group_egress_rule" "app_runner_to_ec2" {
+  description                  = "App Runner storefront to Medusa backend on port 9000"
+  from_port                    = 9000
+  to_port                      = 9000
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.ec2.id
+  security_group_id            = aws_security_group.app_runner.id
+
+  tags = merge(local.common_tags, { Name = "${var.project_name}-${var.environment}-app-runner-to-ec2" })
+}
+
+# App Runner → internet HTTPS (Stripe, CDN, external APIs)
+# Required because egress_type = VPC routes all outbound traffic through the VPC;
+# internet-bound traffic exits via the NAT gateway in the private subnets.
+resource "aws_vpc_security_group_egress_rule" "app_runner_to_https" {
+  description       = "App Runner outbound HTTPS to internet via NAT gateway"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+  security_group_id = aws_security_group.app_runner.id
+
+  tags = merge(local.common_tags, { Name = "${var.project_name}-${var.environment}-app-runner-to-https" })
+}
+
+# EC2 ingress on port 9000 from App Runner SG (VPC-internal, no public exposure)
+resource "aws_vpc_security_group_ingress_rule" "ec2_from_app_runner" {
+  description                  = "Medusa API (port 9000) from App Runner VPC Connector - internal only"
+  from_port                    = 9000
+  to_port                      = 9000
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.app_runner.id
+  security_group_id            = aws_security_group.ec2.id
+
+  tags = merge(local.common_tags, { Name = "${var.project_name}-${var.environment}-ec2-from-app-runner" })
+}
 
 # Outbound 1: Allow EC2 to RDS PostgreSQL (port 5432)
 resource "aws_vpc_security_group_egress_rule" "ec2_to_rds" {

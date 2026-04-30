@@ -46,6 +46,16 @@ variable "enable_https" {
   default     = false
 }
 
+variable "medusa_api_cidr" {
+  description = "CIDR block allowed to reach the Medusa API on port 9000 (e.g. your workstation IP as x.x.x.x/32). Set to null to disable the rule entirely. Never use 0.0.0.0/0 in production."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.medusa_api_cidr == null || can(cidrhost(var.medusa_api_cidr, 0))
+    error_message = "medusa_api_cidr must be a valid IPv4 CIDR block or null."
+  }
+}
+
 variable "db_port" {
   description = "Database port for RDS security group"
   type        = number
