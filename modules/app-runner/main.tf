@@ -212,10 +212,13 @@ resource "aws_apprunner_service" "storefront" {
   auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.storefront[0].arn
 
   health_check_configuration {
+    # TCP health check: only verifies port 8000 is accepting connections.
+    # Using HTTP on / would trigger Next.js SSR which fetches from the Medusa
+    # backend — if that fetch takes longer than the 5s timeout, App Runner marks
+    # the deployment as failed even though the container is healthy.
+    protocol            = "TCP"
     healthy_threshold   = 1
     interval            = 10
-    path                = var.health_check_path
-    protocol            = "HTTP"
     timeout             = 5
     unhealthy_threshold = 5
   }
