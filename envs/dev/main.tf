@@ -145,8 +145,11 @@ module "app_runner" {
   create_service = var.enable_app_runner
 
   # Medusa backend API URL injected as NEXT_PUBLIC_MEDUSA_BACKEND_URL
-  # Port 9000 is required — Medusa listens on 9000, not 80
-  medusa_backend_url = "http://${module.ec2.public_ip}:9000"
+  # Uses the private IP so traffic stays inside the VPC via the VPC Connector.
+  # Using the public IP causes traffic to exit via NAT gateway, which means
+  # the source IP reaching EC2 is the NAT public IP, not the App Runner SG —
+  # so the security group reference rule would never match.
+  medusa_backend_url = "http://${module.ec2.private_ip}:9000"
 
   # Medusa Starter Storefront listens on port 8000 by default
   port = 8000
