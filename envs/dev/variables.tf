@@ -111,3 +111,13 @@ variable "enable_app_runner" {
   type        = bool
   default     = false
 }
+
+variable "alarm_email" {
+  description = "Email address to receive CloudWatch alarm notifications via SNS. Set to null to create alarms without email subscription."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.alarm_email == null || can(regex("^[^@]+@[^@]+\\.[^@]+$", var.alarm_email))
+    error_message = "alarm_email must be a valid email address or null."
+  }
+}

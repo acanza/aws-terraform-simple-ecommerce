@@ -179,5 +179,171 @@ module "app_runner" {
   depends_on = [module.ec2]
 }
 
+# ============================================================
+# CLOUDWATCH ALARMS — Minimum viable monitoring
+# ============================================================
+# SNS topic: all alarms publish here. Subscribe an email address
+# via var.alarm_email to receive notifications.
 
+resource "aws_sns_topic" "alarms" {
+  name = "ecommerce-dev-alarms"
+
+  tags = {
+    Environment = "dev"
+    Project     = "ecommerce"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_sns_topic_subscription" "alarm_email" {
+  count = var.alarm_email != null ? 1 : 0
+
+  topic_arn = aws_sns_topic.alarms.arn
+  protocol  = "email"
+  endpoint  = var.alarm_email
+}
+
+# ────────────────────────────────────────────────────────────
+# EC2 Alarms
+# ────────────────────────────────────────────────────────────
+
+resource "aws_cloudwatch_metric_alarm" "ec2_cpu_high" {
+  alarm_name          = "ecommerce-dev-ec2-cpu-high"
+  alarm_description   = "EC2 CPU utilization above 80% for 10 minutes"
+  namespace           = "AWS/EC2"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300 # 5 minutes
+  evaluation_periods  = 2   # 2 consecutive periods = 10 min before triggering
+  threshold           = 80
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    InstanceId = module.ec2.instance_id
+  }
+
+  alarm_actions = [aws_sns_topic.alarms.arn]
+  ok_actions    = [aws_sns_topic.alarms.arn]
+
+  tags = {
+    Environment = "dev"
+    Project     = "ecommerce"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "ec2_status_check_failed" {
+  alarm_name          = "ecommerce-dev-ec2-status-check-failed"
+  alarm_description   = "EC2 status check failed — instance may be unreachable or impaired"
+  namespace           = "AWS/EC2"
+  metric_name         = "StatusCheckFailed"
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "breaching" # Missing data means the instance may be down
+
+  dimensions = {
+    InstanceId = module.ec2.instance_id
+  }
+
+  alarm_actions = [aws_sns_topic.alarms.arn]
+  ok_actions    = [aws_sns_topic.alarms.arn]
+
+  tags = {
+    Environment = "dev"
+    Project     = "ecommerce"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# ────────────────────────────────────────────────────────────
+# RDS Alarms — only when RDS is enabled
+# ────────────────────────────────────────────────────────────
+
+resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
+  count = var.enable_rds ? 1 : 0
+
+  alarm_name          = "ecommerce-dev-rds-cpu-high"
+  alarm_description   = "RDS CPU utilization above 80% for 10 minutes"
+  namespace           = "AWS/RDS"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = module.rds[0].db_instance_id
+  }
+
+  alarm_actions = [aws_sns_topic.alarms.arn]
+  ok_actions    = [aws_sns_topic.alarms.arn]
+
+  tags = {
+    Environment = "dev"
+    Project     = "ecommerce"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "rds_low_storage" {
+  count = var.enable_rds ? 1 : 0
+
+  alarm_name          = "ecommerce-dev-rds-low-storage"
+  alarm_description   = "RDS free storage below 2 GB — consider increasing allocated_storage"
+  namespace           = "AWS/RDS"
+  metric_name         = "FreeStorageSpace"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 2147483648 # 2 GB in bytes
+  comparison_operator = "LessThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = module.rds[0].db_instance_id
+  }
+
+  alarm_actions = [aws_sns_topic.alarms.arn]
+  ok_actions    = [aws_sns_topic.alarms.arn]
+
+  tags = {
+    Environment = "dev"
+    Project     = "ecommerce"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "rds_high_connections" {
+  count = var.enable_rds ? 1 : 0
+
+  alarm_name          = "ecommerce-dev-rds-high-connections"
+  alarm_description   = "RDS database connections above 80 — db.t3.micro max is ~88"
+  namespace           = "AWS/RDS"
+  metric_name         = "DatabaseConnections"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = module.rds[0].db_instance_id
+  }
+
+  alarm_actions = [aws_sns_topic.alarms.arn]
+  ok_actions    = [aws_sns_topic.alarms.arn]
+
+  tags = {
+    Environment = "dev"
+    Project     = "ecommerce"
+    ManagedBy   = "Terraform"
+  }
+}
 
