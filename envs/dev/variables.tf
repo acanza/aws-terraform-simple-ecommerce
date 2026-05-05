@@ -39,10 +39,9 @@ variable "db_port" {
 }
 
 variable "rds_master_password" {
-  description = "Master password for RDS PostgreSQL database (stored in Secrets Manager recommended for production)"
+  description = "Master password for RDS PostgreSQL database. Must be provided via terraform.tfvars (git-ignored). Never hardcode here."
   type        = string
   sensitive   = true
-  default     = "devPassword123!" # Only for development - NEVER use for production
   validation {
     condition     = length(var.rds_master_password) >= 8 && length(var.rds_master_password) <= 128
     error_message = "RDS master password must be between 8 and 128 characters."
@@ -76,10 +75,9 @@ variable "medusa_admin_user" {
 }
 
 variable "medusa_admin_password" {
-  description = "Medusa administrator password (minimum 8 characters, for development only)"
+  description = "Medusa administrator password (minimum 8 characters). Must be provided via terraform.tfvars (git-ignored). Never hardcode here."
   type        = string
   sensitive   = true
-  default     = "Medusa2024!" # Only for development - CHANGE for production
   validation {
     condition     = length(var.medusa_admin_password) >= 8 && length(var.medusa_admin_password) <= 255
     error_message = "Medusa admin password must be between 8 and 255 characters."
@@ -112,4 +110,14 @@ variable "enable_app_runner" {
   description = "Deploy App Runner service for the Medusa Starter Storefront (Next.js). Must push a Docker image to ECR before setting to true"
   type        = bool
   default     = false
+}
+
+variable "alarm_email" {
+  description = "Email address to receive CloudWatch alarm notifications via SNS. Set to null to create alarms without email subscription."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.alarm_email == null || can(regex("^[^@]+@[^@]+\\.[^@]+$", var.alarm_email))
+    error_message = "alarm_email must be a valid email address or null."
+  }
 }

@@ -218,6 +218,15 @@ output "storefront_ecr_repository_url" {
   value       = module.app_runner.ecr_repository_url
 }
 
+# ============================================================
+# CloudWatch Alarms
+# ============================================================
+
+output "alarms_sns_topic_arn" {
+  description = "ARN of the SNS topic that receives all CloudWatch alarm notifications"
+  value       = aws_sns_topic.alarms.arn
+}
+
 output "app_runner_service_id" {
   description = "App Runner service identifier (null if enable_app_runner = false)"
   value       = module.app_runner.service_id
