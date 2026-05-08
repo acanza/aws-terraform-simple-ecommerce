@@ -1,4 +1,4 @@
-# aws-terraform-simple-ecommerce
+# AWS infrastructure for ecommerce web 
 
 > **Proyecto de prueba.** El objetivo es explorar y practicar el despliegue de infraestructura AWS con Terraform. Solo se ha implementado el entorno `dev`; los entornos `stage` y `prod` están reservados como estructura pero no desplegados.
 
@@ -40,30 +40,3 @@ En `dev` tanto la instancia EC2 como RDS se despliegan en la **misma AZ** y con 
 ### Monitorización
 
 Se crean alarmas CloudWatch básicas (CPU, estado RDS, etc.) publicadas en un topic SNS configurable mediante la variable `alarm_email`.
-
-## Estructura del repositorio
-
-```
-modules/          # Módulos Terraform reutilizables
-  vpc/
-  security_groups/
-  iam/
-  ec2/
-  rds/
-  app-runner/
-envs/
-  dev/            # Único entorno desplegado
-  stage/          # Reservado (no desplegado)
-  prod/           # Reservado (no desplegado)
-docs/             # Documentación técnica y guías
-Makefile          # Targets: fmt · validate · plan · apply
-```
-
-## Comandos habituales
-
-```bash
-make fmt        # Formatea el código al estilo canónico
-make validate   # Valida la configuración (sin llamadas a AWS)
-make plan       # Muestra los cambios previstos (solo lectura)
-```
-
