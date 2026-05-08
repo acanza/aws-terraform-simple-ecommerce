@@ -1,42 +1,30 @@
-# AWS infrastructure for ecommerce web 
+# AWS infrastructure for ecommerce web
 
-> **Proyecto de prueba.** El objetivo es explorar y practicar el despliegue de infraestructura AWS con Terraform. Solo se ha implementado el entorno `dev`; los entornos `stage` y `prod` están reservados como estructura pero no desplegados.
+> **Learning project.** The goal is to explore and practise deploying AWS infrastructure with Terraform. Only the `dev` environment has been implemented; `stage` and `prod` exist as directory stubs but are not deployed.
 
-## Infraestructura implementada
+## Implemented infrastructure
 
-La arquitectura despliega un e-commerce basado en [Medusa](https://medusajs.com/) (backend headless) con un storefront Next.js (Medusa Starter Storefront), todo en AWS sobre la región `eu-west-3` (París).
+The architecture deploys a [Medusa](https://medusajs.com/) headless commerce backend together with a Next.js storefront (Medusa Starter Storefront), all on AWS in the `eu-west-3` (Paris) region.
 
-### Módulos Terraform
+### Terraform modules
 
-| Módulo | Recurso principal | Descripción |
+| Module | Main resource | Description |
 |---|---|---|
-| `vpc` | VPC `10.0.0.0/16` | Red base con 2 subredes públicas y 2 privadas distribuidas en 2 AZs distintas |
-| `security_groups` | Security Groups | Reglas de acceso para EC2, RDS y App Runner VPC Connector |
-| `iam` | Roles e IAM Users | Permisos mínimos para Terraform y acceso SSH a EC2 |
-| `ec2` | EC2 `t4g.small` | Backend Medusa Commerce en subred pública 1; Nginx como proxy inverso en el puerto 9000 |
-| `rds` | RDS PostgreSQL 14 `db.t3.micro` | Base de datos en subred privada; acceso exclusivo desde el Security Group de EC2 |
-| `app-runner` | AWS App Runner + ECR | Storefront Next.js en contenedor; se conecta al backend vía VPC Connector en subredes privadas |
+| `vpc` | VPC `10.0.0.0/16` | Base network with 2 public and 2 private subnets spread across 2 different AZs |
+| `security_groups` | Security Groups | Access rules for EC2, RDS and the App Runner VPC Connector |
+| `iam` | Roles & IAM Users | Least-privilege permissions for Terraform and SSH access to EC2 |
+| `ec2` | EC2 `t4g.small` | Medusa Commerce backend in public subnet 1; Nginx reverse proxy on port 9000 |
+| `rds` | RDS PostgreSQL 14 `db.t3.micro` | Database in a private subnet; accessible only from the EC2 Security Group |
+| `app-runner` | AWS App Runner + ECR | Next.js storefront container; connects to the backend via VPC Connector in private subnets |
 
-### Diagrama de la arquitectura
+### Architecture diagram
 
-```
-Internet
-    │
-    ├─ HTTPS ──► App Runner (storefront Next.js)
-    │                  │  VPC Connector (subredes privadas)
-    │                  ▼
-    ├─ HTTP/SSH ──► EC2 t4g.small (Medusa backend · puerto 9000)
-    │               Subred pública – AZ 1
-    │                  │
-    │                  ▼
-    └──────────────► RDS PostgreSQL 14 (db.t3.micro)
-                      Subred privada – AZ 1
-```
+![Architecture diagram](docs/aws-medusa-ecommerce-diagram.svg)
 
-### Nota sobre disponibilidad (HA)
+### Note on availability (HA)
 
-En `dev` tanto la instancia EC2 como RDS se despliegan en la **misma AZ** y con una única instancia cada una (`multi_az = false`), lo que reduce costes durante las pruebas. La VPC se ha diseñado con **2 subredes públicas y 2 privadas en AZs diferentes** para que los entornos `stage` y `prod` puedan activar alta disponibilidad (Multi-AZ RDS, Auto Scaling Groups, etc.) sin cambios en la red base.
+In `dev`, both the EC2 instance and the RDS instance are deployed in the **same AZ**, with a single instance of each (`multi_az = false`), which reduces costs during testing. The VPC has been designed with **2 public and 2 private subnets in different AZs** so that the `stage` and `prod` environments can enable high availability (Multi-AZ RDS, Auto Scaling Groups, etc.) without changes to the base network.
 
-### Monitorización
+### Monitoring
 
-Se crean alarmas CloudWatch básicas (CPU, estado RDS, etc.) publicadas en un topic SNS configurable mediante la variable `alarm_email`.
+Basic CloudWatch alarms (CPU, RDS status, etc.) are created and published to an SNS topic that can be configured using the `alarm_email` variable.
