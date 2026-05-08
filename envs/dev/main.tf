@@ -144,12 +144,20 @@ module "app_runner" {
   # create_service gates only the App Runner service; ECR + IAM are always created
   create_service = var.enable_app_runner
 
-  # Medusa backend API URL injected as NEXT_PUBLIC_MEDUSA_BACKEND_URL
-  # Uses the private IP so traffic stays inside the VPC via the VPC Connector.
-  # Using the public IP causes traffic to exit via NAT gateway, which means
-  # the source IP reaching EC2 is the NAT public IP, not the App Runner SG —
-  # so the security group reference rule would never match.
+  # MEDUSA_BACKEND_URL: server-side (SSR / Next.js middleware) uses the private IP
+  # so App Runner → EC2 traffic stays inside the VPC via the VPC Connector.
+  # Using the public IP for server-side would exit via NAT; the source IP reaching
+  # EC2 would be the NAT EIP, not the App Runner SG, so the SG reference rule fails.
   medusa_backend_url = "http://${module.ec2.private_ip}:9000"
+
+  # NEXT_PUBLIC_MEDUSA_BACKEND_URL: this is baked into the browser JS bundle at
+  # build time and executed in the user's browser — it must be the PUBLIC IP/domain,
+  # because browsers cannot reach a private VPC address.
+  # We override only the NEXT_PUBLIC_ variant via env_vars while keeping
+  # MEDUSA_BACKEND_URL (server-side) as the private IP above.
+  env_vars = {
+    NEXT_PUBLIC_MEDUSA_BACKEND_URL = "http://${module.ec2.public_ip}"
+  }
 
   # Medusa Starter Storefront listens on port 8000 by default
   port = 8000

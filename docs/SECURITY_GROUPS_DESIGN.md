@@ -1,104 +1,135 @@
 # Security Groups Design - Assumptions & Risk Assessment
 
+> **Última actualización**: 5 de mayo de 2026  
+> **Versión**: 2.1 — Arquitectura Medusa + App Runner
+
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Internet / CloudFront                  │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-        ┌────────▼─────────┐
-        │   Internet GW    │
-        └────────┬────────┘
-                 │
-    ┌────────────▼──────────────┐
-    │    Public Subnets         │
-    │  (eu-west-3a, eu-west-3b) │
-    │                           │
-    │  EC2 (Web Server)         │
-    │  SG: ec2-sg               │
-    │  Rules:                   │
-    │  - SSH from trusted_ip    │
-    │  - HTTP/HTTPS (optional)  │
-    └────────────┬──────────────┘
-                 │
-    ┌────────────▼──────────────┐
-    │    Private Subnets        │
-    │  (eu-west-3a, eu-west-3b) │
-    │                           │
-    │  RDS (Database)           │
-    │  SG: rds-sg               │
-    │  Rules:                   │
-    │  - DB Port from EC2 SG    │
-    └───────────────────────────┘
-                 │
-        ┌────────▼─────────┐
-        │   NAT Gateway    │
-        └──────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                     Internet / Users                               │
+└──────────────┬──────────────────────────────┬─────────────────────┘
+               │ HTTPS (App Runner URL)        │ HTTP/HTTPS directo
+               │                              │ (enable_http/https = true por defecto)
+   ┌───────────▼──────────┐       ┌───────────▼──────────────────────┐
+   │  AWS App Runner       │       │      Internet Gateway             │
+   │  (Next.js Storefront) │       └───────────┬──────────────────────┘
+   │  SG: app-runner-sg    │                   │
+   │  Egress:              │    ┌──────────────▼────────────────────────────┐
+   │  - Port 9000 → EC2 SG │    │              VPC (10.0.0.0/16)            │
+   │  - HTTPS 443 → internet│   │                                           │
+   └───────────┬───────────┘    │  ┌────────────────────────────────────┐   │
+               │ VPC Connector  │  │         Public Subnets              │   │
+               │ (private nets) │  │      (eu-west-3a, eu-west-3b)      │   │
+               │                │  │                                    │   │
+   ┌───────────▼────────────────▼──▼  EC2 (Medusa Commerce API)        │   │
+   │                                  SG: ec2-sg                        │   │
+   │  Ingress:                                                          │   │
+   │  - Port 9000 from app-runner-sg (VPC interno)                      │   │
+   │  - Port 9000 from medusa_api_cidr (workstation opt. /32)           │   │
+   │  - Port 80  from 0.0.0.0/0 (enable_http = true por defecto ⚠️)    │   │
+   │  - Port 443 from 0.0.0.0/0 (enable_https = true por defecto ⚠️)   │   │
+   │  - SSH from trusted_ssh_cidr (opcional, null por defecto)          │   │
+   │  Egress:                                                           │   │
+   │  - Port 5432 → rds-sg                                              │   │
+   │  - Port 443 → 0.0.0.0/0 (npm, APIs externas vía NAT)              │   │
+   │  - Port 53 UDP → 0.0.0.0/0 (DNS)                                  │   │
+   └────────────────────────────┬───────────────────────────────────────┘   │
+                                │                                           │
+                ┌───────────────▼────────────────────────────┐              │
+                │              Private Subnets                │              │
+                │           (eu-west-3a, eu-west-3b)         │              │
+                │                                            │              │
+                │  RDS PostgreSQL        NAT Gateway         │              │
+                │  SG: rds-sg                                │              │
+                │  Ingress:                                  │              │
+                │  - Port 5432 from ec2-sg solamente         │              │
+                │  Egress: ninguno                           │              │
+                └────────────────────────────────────────────┘              │
+                                                └──────────────────────────┘
 ```
+
+### Security Groups Summary
+
+| SG | Recurso | Reglas Ingress | Reglas Egress |
+|----|---------|----------------|---------------|
+| `ec2-sg` | EC2 Medusa API | port 9000 (app-runner-sg), port 9000 (medusa_api_cidr opt.), port 80 (enable_http **true** por defecto), port 443 (enable_https **true** por defecto), SSH (opt.) | port 5432 (rds-sg), port 443 (HTTPS), port 53 UDP (DNS) |
+| `rds-sg` | RDS PostgreSQL | port 5432 (ec2-sg) | ninguno |
+| `app-runner-sg` | App Runner VPC Connector | ninguno | port 9000 (ec2-sg), port 443 (internet) |
 
 ---
 
 ## 📋 Design Assumptions
 
-### 1. **Architecture Type: Single Web Tier + Database**
-   - **Assumption**: 1 EC2 instance in public subnets (web server)
-   - **Assumption**: 1 RDS instance in private subnets (database)
-   - **Impact**: Simple security group design with 2 SGs
-   - **Future**: Multi-tier design (ALB + ASG) would require additional SGs
+### 1. **Architecture Type: Multi-Tier (Storefront + API + Database)**
+   - **Estado**: ✅ Implementado
+   - **Componentes activos**:
+     - App Runner (Next.js SSR/Storefront) → **SG: `app-runner-sg`**
+     - EC2 (Medusa Commerce API, puerto 9000) → **SG: `ec2-sg`** (en subred pública)
+     - RDS PostgreSQL (base de datos privada) → **SG: `rds-sg`**
+   - **Total SGs**: 3 (ec2-sg, rds-sg, app-runner-sg)
+   - **Cambio respecto a v1**: Anteriormente 2 SGs (ec2-sg, rds-sg); se añadió `app-runner-sg` para el VPC Connector de App Runner
 
-### 2. **EC2 web traffic: HTTP/HTTPS (Disabled by Default)**
-   - **Assumption**: Web traffic is optional, must be explicitly enabled
-   - **Why**: Safer defaults; operator must intentionally allow internet access
-   - **Configuration**: `enable_http = false` and `enable_https = false` by default
-   - **Flexibility**: Can enable via variables in terraform.tfvars
+### 2. **Aplicación: Medusa Commerce (antes WordPress)**
+   - **Estado**: ✅ Migración completada (2026-04-20)
+   - **Impacto en SGs**: Puerto de API expuesto es 9000 (Medusa), no 80/8080
+   - **Base de datos**: PostgreSQL puerto 5432 (antes MySQL 3306)
+   - **Arquitectura headless**: El frontend (Next.js) consume la API de Medusa vía VPC Connector
 
-### 3. **SSH Access: BLOCKED by Default**
-   - **Assumption**: SSH is completely disabled for maximum security
-   - **Why**: SSH port (22) is a common attack target; disabled by default
-   - **Implementation**: No SSH ingress rule; optional via `trusted_ssh_cidr` variable (default: null)
-   - **To enable SSH (optional)**: Uncomment `trusted_ssh_cidr = "203.0.113.0/32"` (your office IP)
-   - **For VPN (optional)**: Use `trusted_ssh_cidr = "203.0.113.0/24"` (corporate VPN subnet)
+### 3. **EC2 Web Traffic: HTTP/HTTPS (HABILITADO por defecto ⚠️)**
+   - **Estado actual**: `enable_http = true` y `enable_https = true` en `envs/dev/variables.tf`
+   - **Impacto**: EC2 en subred pública acepta tráfico HTTP/HTTPS desde `0.0.0.0/0` por defecto
+   - **Justificación dev**: Acceso directo a Medusa API y admin dashboard (`/app`) sin pasar por App Runner
+   - **Riesgo**: EC2 está expuesto directamente a internet — ver Risk Assessment
+   - **Para producción**: Deshabilitar ambos (`false`) y usar App Runner como único punto de entrada público
 
-### 4. **RDS Access: Exclusive to EC2 Security Group**
-   - **Assumption**: Database is only accessible from web servers
-   - **How**: RDS SG has inbound rule from EC2 SG (security group reference)
-   - **Why**: Prevents unauthorized direct database access from internet or other sources
-   - **Limitation**: Single database port (configurable, default 3306 for MySQL)
+### 4. **Puerto Medusa API (9000): Acceso Controlado**
+   - **Estado**: ✅ Implementado
+   - **Regla principal**: Puerto 9000 accesible desde `app-runner-sg` (referencia SG interna, sin exposición pública)
+   - **Regla opcional (workstation)**: Variable `medusa_api_cidr` permite abrir el puerto 9000 desde una IP de confianza (e.g. workstation `/32`) para debug o Docker build
+   - **Nunca usar**: `0.0.0.0/0` para `medusa_api_cidr`
+   - **Migración planificada**: `ec2_medusa_api` (regla workstation) reemplazable por VPC Connector completo cuando App Runner esté siempre activo
 
-### 5. **Database Port: Parameterized (Default MySQL)**
-   - **Assumption**: Database port is 3306 (MySQL default)
-   - **Flexibility**: Configurable for PostgreSQL (5432), SQL Server (1433), etc.
-   - **Implementation**: Variable `db_port` allows override
-   - **Limitation**: Cannot have multiple RDS instances on different ports (would need per-RDS SGs)
+### 5. **SSH Access: BLOQUEADO por defecto**
+   - **Assumption**: SSH completamente deshabilitado para máxima seguridad
+   - **Implementación**: Sin regla SSH; opcional vía variable `trusted_ssh_cidr` (default: null)
+   - **Para habilitar SSH**: Definir `trusted_ssh_cidr = "203.0.113.0/32"` (IP de oficina/VPN)
+   - **Alternativa recomendada**: AWS Systems Manager Session Manager (sin SSH abierto)
 
-### 6. **EC2 Outbound: All Traffic (0.0.0.0/0)**
-   - **Assumption**: EC2 needs broad outbound access
-   - **Why**: Required for:
-     - Reaching RDS in private subnets
-     - S3 access (or via VPC Endpoint in future)
-     - Internet access via NAT Gateway
-     - Package manager updates
-   - **Trade-off**: Permissive outbound; can be tightened with VPC Endpoints post-dev
+### 6. **RDS Access: Exclusivo al EC2 Security Group**
+   - **Estado**: ✅ Sin cambio vs v1
+   - **Puerto**: 5432 (PostgreSQL) — antes 3306 (MySQL)
+   - **Acceso**: Solo desde `ec2-sg` vía referencia de SG
+   - **Seguridad**: Base de datos inaccesible desde internet o App Runner (App Runner solo habla con EC2, no con RDS directamente)
 
-### 7. **RDS Outbound: No Rules (Deny-by-Default)**
-   - **Assumption**: Database doesn't need outbound internet access
-   - **Why**: Databases are inbound-only by design
-   - **Future**: If RDS needs to reach external APIs, add explicit rules
+### 7. **EC2 Egress: Restringido (Fix P1 aplicado)**
+   - **Estado**: ✅ SECURITY FIX P1 aplicado — ya no es "allow all"
+   - **Reglas actuales**:
+     - Puerto 5432 → `rds-sg` (referencia SG, no CIDR)
+     - Puerto 443 → `0.0.0.0/0` (npm registry, APIs externas vía NAT)
+     - Puerto 53 UDP → `0.0.0.0/0` (resolución DNS)
+   - **Cambio respecto a v1**: Antes era `ALL → 0.0.0.0/0`; ahora 3 reglas explícitas
 
-### 8. **S3 & CloudFront: Not Included**
-   - **Assumption**: S3 doesn't use security groups (uses bucket policies)
-   - **Assumption**: CloudFront uses origin access identity (not SGs)
-   - **Impact**: EC2 will need IAM role + S3 permissions (separate module)
+### 8. **App Runner VPC Connector: SG Dedicado**
+   - **Estado**: ✅ Implementado
+   - **Propósito**: Enrutar tráfico App Runner → EC2 dentro del VPC (sin pasar por internet público)
+   - **SG `app-runner-sg` egress**:
+     - Puerto 9000 → `ec2-sg` (referencia interna; tráfico VPC-interno)
+     - Puerto 443 → `0.0.0.0/0` (Stripe, CDN, APIs externas vía NAT Gateway)
+   - **Por qué subredes privadas**: El tráfico a internet sale por NAT Gateway; las subredes privadas tienen ruta NAT
 
-### 9. **Simple Separate Rules (Not Inline)**
-   - **Assumption**: Using `aws_vpc_security_group_ingress_rule` and `aws_vpc_security_group_egress_rule` (not inline blocks)
-   - **Why**: Better readability, easier to add/remove individual rules, version control friendly
-   - **Trade-off**: Slightly more lines of code but more maintainable
+### 9. **RDS Egress: Sin Reglas (Deny-by-Default)**
+   - **Estado**: ✅ Sin cambio vs v1
+   - **Why**: Las bases de datos no necesitan acceso saliente a internet
 
-### 10. **Single Environment: Dev Only**
-   - **Assumption**: This design is for dev/stage environments
-   - **For Production**: Would add stricter ingress controls, VPC Endpoints, ALB, etc.
+### 10. **Reglas Separadas (No Inline)**
+   - **Estado**: ✅ Sin cambio vs v1
+   - **Recursos usados**: `aws_vpc_security_group_ingress_rule` y `aws_vpc_security_group_egress_rule`
+   - **Why**: Mejor legibilidad, control granular, compatible con imports/drift detection
+
+### 11. **Single Environment: Dev solamente**
+   - **Estado**: Sin cambio vs v1
+   - **Para Producción**: Añadir VPC Endpoints (S3, Secrets Manager), ALB, restricciones de egress adicionales
 
 ---
 
@@ -106,184 +137,226 @@
 
 ### 🔴 CRITICAL RISKS
 
-**1. SSH exposure (formerly CRITICAL, now MITIGATED)**
-   - **Risk**: SSH was previously restricted to trusted CIDR; now completely blocked by default
-   - **Severity**: MITIGATED (no SSH rule exists; must explicitly enable if needed)
-   - **Mitigation**: SSH ingress rule is NOT created unless `trusted_ssh_cidr` is explicitly provided
-   - **Status**: ✅ Secure by default (SSH disabled)
+**1. SSH exposure (MITIGADO)**
+   - **Riesgo**: SSH puede habilitarse via `trusted_ssh_cidr`; si se usa CIDR amplio es crítico
+   - **Severidad**: MITIGADO (sin regla SSH por defecto; se crea solo si `trusted_ssh_cidr != null`)
+   - **Estado**: ✅ Seguro por defecto
 
-**2. HTTP/HTTPS enabled (0.0.0.0/0) without authentication**
-   - **Risk**: If `enable_http = true` or `enable_https = true`, web server is public
-   - **Severity**: CRITICAL if web server has vulnerable applications
-   - **Assumption**: Web server runs hardened application (authentication, WAF)
-   - **Mitigation**: Disabled by default; operator must explicitly enable
-   - **Status**: ⚠️ Operator responsibility
+**2. HTTP/HTTPS directo a EC2 (ACTIVO POR DEFECTO)**
+   - **Riesgo**: EC2 en subred pública acepta HTTP/HTTPS desde `0.0.0.0/0` — expuesto directamente a internet
+   - **Severidad**: CRÍTICO si Medusa tiene vulnerabilidades sin parchear
+   - **Estado actual**: `enable_http = true`, `enable_https = true` en `variables.tf` (defaults)
+   - **Justificación dev**: Acceso directo al admin dashboard y API durante desarrollo
+   - **Para producción**: Cambiar defaults a `false`; enrutar todo vía App Runner
+   - **Estado**: ⚠️ ACTIVO — riesgo conocido y aceptado para dev
+
+**3. Puerto Medusa 9000 desde workstation (si `medusa_api_cidr` habilitado)**
+   - **Riesgo**: El puerto 9000 queda accesible desde una IP pública si `medusa_api_cidr` se define
+   - **Severidad**: CRÍTICO si se usa `0.0.0.0/0`; BAJO con `/32`
+   - **Validación**: Variable valida CIDR válido; el operador debe asegurar `/32`
+   - **Plan de migración**: Reemplazar por acceso exclusivo vía App Runner VPC Connector en producción
+   - **Estado**: ⚠️ Solo habilitar temporalmente; usar `/32` siempre
 
 ### 🟠 HIGH RISKS
 
-**1. EC2 → Internet (0.0.0.0/0) outbound access**
-   - **Risk**: EC2 can reach any external IP; could be used for data exfiltration
-   - **Severity**: HIGH for prod; ACCEPTABLE for dev
-   - **Mitigation**: 
-     - For dev/stage: Current design is acceptable
-     - For prod: Tighten to S3 VPC Endpoint + RDS subnet CIDR only
-   - **Status**: ⚠️ Known trade-off for dev
+**1. EC2 → Internet HTTPS (0.0.0.0/0 puerto 443)**
+   - **Riesgo**: EC2 puede alcanzar cualquier IP externa; posible vector de exfiltración de datos
+   - **Severidad**: ALTO en prod; ACEPTABLE en dev
+   - **Por qué existe**: npm registry, Medusa plugins, actualizaciones del SO
+   - **Mitigación para prod**: Añadir VPC Endpoint S3 + limitar 443 a rangos conocidos
+   - **Estado**: ⚠️ Trade-off conocido para dev
 
-**2. Single RDS instance accessible from all EC2s**
-   - **Risk**: Compromised EC2 = compromised database
-   - **Severity**: HIGH (typical for architecture)
-   - **Mitigation**: 
-     - Proper OS hardening on EC2
-     - Strong RDS master password (Secrets Manager)
-     - RDS read replicas for backups
-   - **Status**: ⚠️ Architectural limitation (not a SG issue)
+**2. EC2 comprometido = acceso a RDS**
+   - **Riesgo**: Un EC2 comprometido permite acceso directo a PostgreSQL
+   - **Severidad**: ALTO (típico de arquitectura de dos capas)
+   - **Mitigación**: Hardening del SO en EC2; contraseña RDS en Secrets Manager; RDS encryption en reposo
+   - **Estado**: ⚠️ Limitación arquitectónica
 
-**3. No network encryption (RDS in private subnet)**
-   - **Risk**: RDS traffic travels unencrypted to EC2
-   - **Severity**: MEDIUM (mitigated by private subnet, encryption at rest)
-   - **Mitigation**: RDS SSL/TLS should be enforced at application layer
-   - **Status**: ⚠️ Requires RDS configuration (not SG)
+**3. EC2 root volume sin encriptación (pendiente)**
+   - **Riesgo**: Datos en el disco del servidor Medusa no cifrados
+   - **Severidad**: CRÍTICO (auditado 2026-04-13, aún pendiente)
+   - **Solución**: `encrypted = true` en `modules/ec2/main.tf`
+   - **Estado**: ❌ P0 PENDIENTE
+
+**4. VPC Flow Logs deshabilitados (pendiente)**
+   - **Riesgo**: Sin auditoría de tráfico real; difícil detectar movimientos laterales
+   - **Severidad**: CRÍTICO para compliance
+   - **Solución**: Añadir `aws_flow_log` a `modules/vpc/main.tf`
+   - **Estado**: ❌ P0 PENDIENTE
 
 ### 🟡 MEDIUM RISKS
 
-**1. DB port exposed to EC2 → all EC2 applications**
-   - **Risk**: All applications on EC2 can access database (no app-level isolation)
-   - **Severity**: MEDIUM (assumes single app per EC2)
-   - **Assumption**: One application per EC2; if multiple apps, need connection pooling/proxy
-   - **Status**: ⚠️ Acceptable for dev
+**1. App Runner → NAT Gateway (egress HTTPS a internet)**
+   - **Riesgo**: App Runner puede alcanzar cualquier servicio externo vía puerto 443
+   - **Severidad**: MEDIO (necesario para Stripe, CDN, APIs externas)
+   - **Por qué el egress HTTPS existe**: `egress_type = VPC` fuerza todo el tráfico por el VPC; sin esta regla App Runner no puede contactar servicios externos
+   - **Estado**: ⚠️ Aceptable; limitar con VPC Endpoints en prod
 
-**2. HTTP (port 80) enabled → plaintext traffic**
-   - **Risk**: Credentials/data transmitted unencrypted
-   - **Severity**: MEDIUM (mitigated by HTTPS)
-   - **Mitigation**: Always use HTTPS; redirect HTTP → HTTPS at application layer
-   - **Status**: ⚠️ App responsibility (not SG)
+**2. HTTP (puerto 80) → tráfico en texto plano (si se habilita)**
+   - **Riesgo**: Credenciales/datos sin cifrar
+   - **Mitigación**: Usar siempre HTTPS; redirigir HTTP→HTTPS en la aplicación
+   - **Estado**: ⚠️ Responsabilidad de la aplicación
 
-**3. No VPC Flow Logs**
-   - **Risk**: Cannot audit actual traffic, debugging network issues
-   - **Severity**: MEDIUM (operational, not security)
-   - **Mitigation**: Add VPC Flow Logs to CloudWatch in next iteration
-   - **Status**: ⏳ Future improvement
+**3. Sin RDS CloudWatch Logs cuando RDS activo**
+   - **Riesgo**: Sin visibilidad de queries lentas o conexiones anómalas
+   - **Severidad**: MEDIO (auditado 2026-04-13; módulo RDS tiene `enable_enhanced_monitoring = true`)
+   - **Estado**: ⚠️ Parcialmente mitigado; añadir `enabled_cloudwatch_logs_exports = ["postgresql"]`
 
 ### 🟢 LOW RISKS
 
-**1. NAT Gateway IP exposure**
-   - **Risk**: Outbound traffic uses single NAT Gateway IP (predictable)
-   - **Severity**: LOW
-   - **Mitigation**: Single NAT acceptable for dev; prod uses multi-NAT HA
-   - **Status**: ✅ Acceptable for dev
+**1. Single NAT Gateway (SPOF para dev)**
+   - **Riesgo**: Si NAT Gateway falla, App Runner pierde acceso a internet externo; EC2 pierde acceso a npm/S3
+   - **Severidad**: BAJO para dev (2-5 min de downtime); ALTO para prod
+   - **Estado**: ✅ Aceptable para dev; Multi-NAT obligatorio en prod
 
-**2. No SSH key rotation policy (only if SSH is enabled)**
-   - **Risk**: Long-lived SSH keys (EC2 Key Pairs) if SSH is explicitly enabled
-   - **Severity**: LOW (only applicable if SSH is enabled; mitigated by default SSH block)
-   - **Mitigation**: If enabling SSH, implement key rotation policy; consider SSM Session Manager
-   - **Status**: ⏳ Future improvement (post-SSH enablement)
+**2. Sin rotación de SSH keys (solo si SSH habilitado)**
+   - **Riesgo**: EC2 Key Pairs de larga duración si SSH está activo
+   - **Mitigación**: Preferir SSM Session Manager; si SSH es necesario, implementar rotación
+   - **Estado**: ⏳ Mejora futura
+
+**3. Sin VPC Endpoints para Secrets Manager**
+   - **Riesgo**: El tráfico App Runner→internet sale por NAT (costo + latencia)
+   - **Severidad**: BAJO para dev (funcional pero subóptimo)
+   - **Estado**: ⏳ Mejora futura (VPC Endpoints casi gratis + mejor seguridad)
 
 ---
 
 ## 🔐 Overly Permissive Access Assessment
 
-### Current Configuration (if properly used)
+### Configuración Actual (si se usa correctamente)
 
-✅ **NOT overly permissive** if configured correctly:
-- ✅ SSH: BLOCKED by default (optional to enable via `trusted_ssh_cidr`)
-- ✅ HTTP/HTTPS: Disabled by default (opt-in only)
-- ✅ RDS: Only from EC2 SG (not public internet)
-- ✅ Outbound: Necessary for architecture
+⚠️ **La configuración actual (dev) tiene permisos amplios en HTTP/HTTPS**:
+- ✅ SSH: BLOQUEADO por defecto (habilitar solo con `trusted_ssh_cidr`)
+- ⚠️ HTTP a EC2: **HABILITADO por defecto** (`enable_http = true`) — EC2 expuesto a internet
+- ⚠️ HTTPS a EC2: **HABILITADO por defecto** (`enable_https = true`) — EC2 expuesto a internet
+- ✅ RDS: Solo desde `ec2-sg` (no internet, no App Runner directamente)
+- ✅ Medusa API 9000: Solo desde `app-runner-sg` (VPC interno) + workstation opcional (`/32`)
+- ✅ EC2 egress: Restringido (443, 5432, 53) — ya no es "allow all"
+- ✅ App Runner egress: Solo puerto 9000 a `ec2-sg` + 443 a internet
 
-### Potential Issues (if misconfigured)
+### Problemas potenciales (si se configura mal)
 
-❌ **Would be overly permissive if:**
-1. SSH rule added with `cidr_ipv4 = "0.0.0.0/0"` (manual override - SSH blocked by default)
-2. `enable_http = true` on untested/vulnerable app
-3. `enable_https = true` without HTTPS/TLS enforced
-4. RDS port opened to 0.0.0.0/0 (manual error)
-5. `trusted_ssh_cidr` enabled with overly broad CIDR (e.g., "0.0.0.0/0")
+❌ **Sería excesivamente permisivo si:**
+1. SSH con `trusted_ssh_cidr = "0.0.0.0/0"` (manual override)
+2. `medusa_api_cidr = "0.0.0.0/0"` (puerto 9000 público)
+3. `enable_http = true` en aplicación sin hardening
+4. `enable_https = true` sin TLS/HTTPS forzado
+5. Puerto RDS abierto a `0.0.0.0/0` (error manual en reglas)
 
-### Mitigation
+### Mitigaciones
 
-- ✅ Variables validated (CIDR syntax, boolean flags)
-- ✅ Separate rule resources (prevent accidental inline modifications)
-- ⚠️ Manual override still possible (operator responsibility)
-- ⏳ Future: Add AWS Security Hub, Config rules for drift detection
+- ✅ Variables validadas (CIDR syntax, boolean flags)
+- ✅ Recursos de reglas separados (previene modificaciones inline accidentales)
+- ✅ Referencia SG para RDS y App Runner (no CIDRs)
+- ⚠️ Override manual aún posible (responsabilidad del operador)
+- ⏳ Futuro: AWS Security Hub + Config rules para drift detection
 
 ---
 
 ## 📊 Implementation Checklist
 
-### Before `terraform plan`:
+### Antes de `terraform plan`:
 
-- [ ] (OPTIONAL) Enable SSH access? (disabled by default)
+- [ ] (OPCIONAL) ¿Necesitas SSH? (deshabilitado por defecto)
   ```bash
-  # Only if SSH needed: Find your public IP
+  # Solo si se requiere SSH: obtener IP pública
   curl https://ifconfig.me
-  # Example: 203.0.113.42 → provide as 203.0.113.42/32
+  # Ejemplo: 203.0.113.42 → usar como 203.0.113.42/32
   ```
 
-- [ ] Decide: Enable HTTP or HTTPS?
-  - [ ] No (default, safest) → leave `enable_http = false`, `enable_https = false`
-  - [ ] Yes, HTTP only → set `enable_http = true`
-  - [ ] Yes, HTTPS (recommended) → set `enable_https = true` + enable_http = true (redirect)
+- [ ] ¿Necesitas acceso directo al puerto Medusa 9000 desde workstation? (debug / Docker build)
+  ```bash
+  # Solo temporal y con /32
+  medusa_api_cidr = "203.0.113.42/32"
+  # Retirar una vez App Runner VPC Connector esté operativo
+  ```
 
-- [ ] Check database type and port
-  - [ ] MySQL (default: 3306) → leave as default
-  - [ ] PostgreSQL (5432) → set `db_port = 5432`
-  - [ ] SQL Server (1433) → set `db_port = 1433`
+- [ ] Decide: ¿Habilitar HTTP o HTTPS directo a EC2?
+  - [ ] No (default, más seguro) → dejar `enable_http = false`, `enable_https = false`
+  - [ ] Sí, solo HTTP → `enable_http = true`
+  - [ ] Sí, HTTPS (recomendado) → `enable_https = true` + `enable_http = true` (redirect)
 
-### terraform.tfvars (dev) example:
+- [ ] Confirmar puerto de base de datos
+  - [ ] PostgreSQL (5432) → `db_port = 5432` ✅ (configuración actual del proyecto)
+
+### terraform.tfvars (dev) — configuración actual real:
 
 ```hcl
 region            = "eu-west-3"
 vpc_cidr          = "10.0.0.0/16"
-# SSH disabled by default; uncomment below to enable:
-# trusted_ssh_cidr  = "203.0.113.0/32"  # ← ONLY IF SSH NEEDED
-enable_http       = false
-enable_https      = false
-db_port           = 3306
+db_port           = 5432           # PostgreSQL
+
+# SSH deshabilitado por defecto; descomentar SOLO si es necesario:
+# trusted_ssh_cidr = "203.0.113.0/32"
+
+# Puerto 9000 workstation SOLO durante debug/build; null el resto del tiempo:
+# medusa_api_cidr = "203.0.113.42/32"
+
+# ⚠️ Por defecto en variables.tf: enable_http = true, enable_https = true
+# Necesario en dev para acceder al admin dashboard directamente.
+# Para una postura más segura en dev, sobreescribir con false:
+# enable_http  = false
+# enable_https = false
 ```
 
-### Expected Terraform output:
+### Output esperado de Terraform (configuración mínima, sin opcionales):
 
 ```
-Plan: 14 to add, 0 to change, 0 to destroy
+Plan: N to add, 0 to change, 0 to destroy
 
 + aws_security_group.ec2
 + aws_security_group.rds
-+ aws_vpc_security_group_ingress_rule.ec2_ssh (if trusted_ssh_cidr provided)
-+ aws_vpc_security_group_ingress_rule.ec2_http (if enabled)
-+ aws_vpc_security_group_ingress_rule.ec2_https (if enabled)
-+ aws_vpc_security_group_egress_rule.ec2_all_outbound
++ aws_security_group.app_runner
++ aws_vpc_security_group_ingress_rule.ec2_from_app_runner  (puerto 9000 interno)
++ aws_vpc_security_group_ingress_rule.ec2_medusa_api       (si medusa_api_cidr != null)
++ aws_vpc_security_group_ingress_rule.ec2_ssh              (si trusted_ssh_cidr != null)
++ aws_vpc_security_group_ingress_rule.ec2_http             (si enable_http = true)
++ aws_vpc_security_group_ingress_rule.ec2_https            (si enable_https = true)
 + aws_vpc_security_group_ingress_rule.rds_from_ec2
-+ ... (8 total resources)
++ aws_vpc_security_group_egress_rule.ec2_to_rds
++ aws_vpc_security_group_egress_rule.ec2_to_s3
++ aws_vpc_security_group_egress_rule.ec2_dns
++ aws_vpc_security_group_egress_rule.app_runner_to_ec2
++ aws_vpc_security_group_egress_rule.app_runner_to_https
 ```
 
 ---
 
 ## 🎯 Summary
 
-| Aspect | Status | Rationale |
-|--------|--------|-----------|
-| **SSH Access** | ✅ SECURE | Blocked by default, optional to enable |
-| **Web Traffic** | ✅ SECURE | Disabled by default, must enable explicitly |
-| **RDS Isolated** | ✅ SECURE | Only accessible from EC2 SG |
-| **Outbound Access** | ⚠️ ACCEPTABLE | Necessary for dev/stage; tighten for prod |
-| **Architecture** | ✅ SIMPLE | 2 SGs, 7 rules total, easy to understand |
-| **Maintainability** | ✅ GOOD | Separate rule resources, parametrized |
-| **S3/CloudFront** | ✅ NOT INCLUDED | As specified, handled separately |
+| Aspecto | Estado | Detalle |
+|---------|--------|---------|
+| **SSH Access** | ✅ SEGURO | Bloqueado por defecto, habilitar solo con `/32` |
+| **Web Traffic directo a EC2** | ⚠️ ACTIVO | `enable_http = true`, `enable_https = true` por defecto — EC2 expuesto a internet en dev |
+| **Medusa API 9000** | ✅ SEGURO | Solo desde App Runner SG (interno) + workstation opcional `/32` |
+| **RDS Aislado** | ✅ SEGURO | Solo accesible desde `ec2-sg` |
+| **EC2 Egress** | ✅ RESTRINGIDO | Solo 443 (HTTPS), 5432 (RDS), 53 UDP (DNS) — fix P1 aplicado |
+| **App Runner Egress** | ✅ MÍNIMO | Solo 9000 → EC2 + 443 → internet |
+| **Arquitectura** | ✅ MULTI-TIER | 3 SGs (ec2, rds, app-runner), bien separados |
+| **Mantenibilidad** | ✅ BUENA | Recursos de reglas separados, variables parametrizadas |
+
+### Vulnerabilidades P0 Pendientes (de auditoría 2026-04-13)
+
+| # | Vulnerabilidad | Módulo | Estado |
+|---|---------------|--------|--------|
+| 1 | EC2 root volume sin encriptación | `modules/ec2/main.tf` | ❌ Pendiente |
+| 2 | VPC Flow Logs deshabilitados | `modules/vpc/main.tf` | ❌ Pendiente |
+| 3 | RDS sin CloudWatch Logs exports | `modules/rds/main.tf` | ❌ Pendiente |
 
 ---
 
 ## 🔄 Next Steps (Out of Scope)
 
-1. **EC2 Module** — Launch instances with these security groups
-2. **RDS Module** — Create database with this security group
-3. **IAM Module** — EC2 role for S3 access, EC2 role for SSM
-4. **VPC Endpoints** — S3/DynamoDB endpoints to tighten outbound
-5. **ALB** — Add load balancer, separate web/app SGs
-6. **VPC Flow Logs** — Monitor actual traffic patterns
-7. **Security Groups Tagging** — Improve cost allocation and automation
+1. **P0**: EC2 EBS encryption (`encrypted = true` en `modules/ec2/main.tf`)
+2. **P0**: VPC Flow Logs → CloudWatch (`aws_flow_log` en `modules/vpc/main.tf`)
+3. **P0**: RDS CloudWatch exports (`enabled_cloudwatch_logs_exports = ["postgresql"]`)
+4. **P1**: VPC Endpoints para Secrets Manager (elimina dependencia de NAT)
+5. **P2**: SSM Session Manager como alternativa a SSH (sin puerto 22 abierto)
+6. **P3**: Multi-NAT Gateway para alta disponibilidad (requerido en prod)
+7. **P3**: AWS Security Hub + Config rules para drift detection automático
 
 ---
 
-**Module Created**: Security Groups v1.0  
-**Date**: March 31, 2026  
-**Reversibility**: 100% (code not applied)
+**Módulo Creado**: Security Groups v1.0 — Marzo 2026  
+**Módulo Actualizado**: v2.0 — App Runner + Medusa — Mayo 2026  
+**Reversibilidad**: 100% (sin cambios destructivos en esta versión)
