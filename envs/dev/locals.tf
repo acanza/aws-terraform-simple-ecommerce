@@ -2,7 +2,10 @@
 locals {
   # Determine RDS endpoint
   # Use the actual RDS module output (EC2 will be created after RDS)
-  db_host = var.medusa_db_host != "" ? var.medusa_db_host : module.rds[0].db_instance_address
+  # try() prevents a crash when enable_rds = false and medusa_db_host is not set —
+  # Terraform evaluates both branches of a conditional even when the condition is true,
+  # so indexing into an empty list would error without this guard.
+  db_host = var.medusa_db_host != "" ? var.medusa_db_host : try(module.rds[0].db_instance_address, "")
 
   # Medusa initialization script - read and replace placeholders
   # We use a simple replacement approach instead of templatefile to avoid conflicts with bash variables
